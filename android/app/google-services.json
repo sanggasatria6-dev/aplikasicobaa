@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "60205784066",
+    "project_id": "mytrading-fortecca",
+    "storage_bucket": "mytrading-fortecca.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:60205784066:android:c135a3122588c521935b1b",
+        "android_client_info": {
+          "package_name": "com.example.mytrading"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAFdW1uzzyFwCJG0PfL1maXDStV-9a85RY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
