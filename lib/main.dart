@@ -24,13 +24,62 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'AI Trader Pro',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xFF121212),
-        textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF00E676), // Hijau Profit
-          secondary: Color(0xFF2979FF), // Biru Info
-          surface: Color(0xFF1E1E1E),
+      theme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.light,
+        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
+        colorScheme: const ColorScheme.light(
+          primary: Color(0xFF059669), // Emerald Green
+          secondary: Color(0xFF2563EB), // Royal Blue
+          surface: Color(0xFFFFFFFF),
+          error: Color(0xFFEF4444),
+          onPrimary: Colors.white,
+          onSurface: Color(0xFF0F172A),
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.white,
+          foregroundColor: Color(0xFF0F172A),
+          elevation: 0,
+          scrolledUnderElevation: 1,
+          centerTitle: false,
+          titleTextStyle: TextStyle(
+            color: Color(0xFF0F172A),
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.5,
+          ),
+          iconTheme: IconThemeData(color: Color(0xFF1E293B)),
+        ),
+        cardTheme: CardTheme(
+          color: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: Color(0xFFE2E8F0), width: 1),
+          ),
+          margin: const EdgeInsets.symmetric(vertical: 6),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: const Color(0xFFF1F5F9),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFF059669), width: 1.5),
+          ),
+          labelStyle: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
+        ),
+        textTheme: GoogleFonts.interTextTheme(ThemeData.light().textTheme).apply(
+          bodyColor: const Color(0xFF0F172A),
+          displayColor: const Color(0xFF0F172A),
         ),
       ),
       home: const LoginScreen(),
@@ -38,7 +87,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// NAVIGASI UTAMA (3 TAB)
+// NAVIGASI UTAMA (4 TAB)
 class MainNav extends StatefulWidget {
   const MainNav({super.key});
   @override
@@ -48,26 +97,49 @@ class MainNav extends StatefulWidget {
 class _MainNavState extends State<MainNav> {
   int _idx = 0;
   final _screens = [
-    const DashboardScreen(), // Ganti HomeScreen jadi DashboardScreen
+    const DashboardScreen(),
     const MarketScreen(),
-    const HistoryScreen(),   // Tab Baru
-    const ControlScreen()
+    const HistoryScreen(),
+    const ControlScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: _screens[_idx],
-      bottomNavigationBar: NavigationBar(
-        backgroundColor: const Color(0xFF1E1E1E),
-        selectedIndex: _idx,
-        onDestinationSelected: (i) => setState(() => _idx = i),
-        destinations: const [
-          NavigationDestination(icon: Icon(PhosphorIcons.house), label: "Dashboard"),
-          NavigationDestination(icon: Icon(PhosphorIcons.chartLineUp), label: "Market"),
-          NavigationDestination(icon: Icon(PhosphorIcons.clockCounterClockwise), label: "History"),
-          NavigationDestination(icon: Icon(PhosphorIcons.cpu), label: "Control"),
-        ],
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          border: Border(top: BorderSide(color: Color(0xFFE2E8F0), width: 1)),
+        ),
+        child: NavigationBar(
+          backgroundColor: Colors.white,
+          indicatorColor: const Color(0xFFD1FAE5), // Mint Green Indicator
+          selectedIndex: _idx,
+          elevation: 0,
+          onDestinationSelected: (i) => setState(() => _idx = i),
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(PhosphorIcons.house, color: Color(0xFF64748B)),
+              selectedIcon: Icon(PhosphorIcons.houseFill, color: Color(0xFF059669)),
+              label: "Dashboard",
+            ),
+            NavigationDestination(
+              icon: Icon(PhosphorIcons.chartLineUp, color: Color(0xFF64748B)),
+              selectedIcon: Icon(PhosphorIcons.chartLineUpFill, color: Color(0xFF059669)),
+              label: "Market",
+            ),
+            NavigationDestination(
+              icon: Icon(PhosphorIcons.clockCounterClockwise, color: Color(0xFF64748B)),
+              selectedIcon: Icon(PhosphorIcons.clockCounterClockwiseFill, color: Color(0xFF059669)),
+              label: "History",
+            ),
+            NavigationDestination(
+              icon: Icon(PhosphorIcons.cpu, color: Color(0xFF64748B)),
+              selectedIcon: Icon(PhosphorIcons.cpuFill, color: Color(0xFF059669)),
+              label: "Control",
+            ),
+          ],
+        ),
       ),
     );
   }

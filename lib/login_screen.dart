@@ -13,7 +13,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
 
-  final _ipCtrl = TextEditingController(text: "http://202.155.94.249:6969");
+  final _ipCtrl = TextEditingController(text: "https://api.satriasangga.my.id");
   final _passCtrl = TextEditingController(); 
   final _userCtrl = TextEditingController();
   bool _isLoading = false;
@@ -36,8 +36,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     // 1. Set status loading untuk memunculkan indikator progress
     setState(() => _isLoading = true);
 
-    // 2. Update alamat IP Server berdasarkan input user
-    ref.read(baseUrlProvider.notifier).state = _ipCtrl.text;
+    // 2. Update alamat IP Server berdasarkan input user (bersihkan trailing slash)
+    String cleanUrl = _ipCtrl.text.trim();
+    if (cleanUrl.endsWith('/')) {
+      cleanUrl = cleanUrl.substring(0, cleanUrl.length - 1);
+    }
+    ref.read(baseUrlProvider.notifier).state = cleanUrl;
 
     final username = _userCtrl.text.trim();
     final password = _passCtrl.text.trim();
@@ -101,79 +105,197 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            children: [
-              const Icon(
-                PhosphorIcons.brain,
-                size: 80,
-                color: Color(0xFF00E676),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                "AI TRADER PRO V2",
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 40),
-              TextField(
-                controller: _ipCtrl,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: "Server URL",
-                  prefixIcon: Icon(PhosphorIcons.globe),
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _userCtrl,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: "Username (Opsional)",
-                  prefixIcon: Icon(PhosphorIcons.user),
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _passCtrl,
-                obscureText: true, // Password disensor bintang-bintang
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: "Password",
-                  prefixIcon: Icon(PhosphorIcons.lockKey),
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00E676),
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Logo Container
+                  Container(
+                    width: 76,
+                    height: 76,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD1FAE5), // Mint Green circle
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF059669).withOpacity(0.12),
+                          blurRadius: 16,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      PhosphorIcons.chartLineUpBold,
+                      size: 40,
+                      color: Color(0xFF059669),
+                    ),
                   ),
-                  onPressed: _isLoading ? null : _doLogin,
-                  child:
-                      _isLoading
-                          ? const CircularProgressIndicator()
-                          : const Text(
-                            "LOGIN",
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold,
-                            ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    "AI Trader Pro",
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF0F172A),
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    "Autonomous Trading & Intelligence Platform",
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF64748B),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Login Form Card
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Masuk Akun",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF0F172A),
                           ),
-                ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Server URL
+                        const Text(
+                          "SERVER URL",
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF64748B),
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: _ipCtrl,
+                          style: const TextStyle(color: Color(0xFF0F172A), fontSize: 14),
+                          decoration: const InputDecoration(
+                            hintText: "https://api.satriasangga.my.id",
+                            prefixIcon: Icon(PhosphorIcons.globe, color: Color(0xFF64748B), size: 18),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Username
+                        const Text(
+                          "USERNAME",
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF64748B),
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: _userCtrl,
+                          style: const TextStyle(color: Color(0xFF0F172A), fontSize: 14),
+                          decoration: const InputDecoration(
+                            hintText: "Masukkan username",
+                            prefixIcon: Icon(PhosphorIcons.user, color: Color(0xFF64748B), size: 18),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Password
+                        const Text(
+                          "PASSWORD",
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF64748B),
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: _passCtrl,
+                          obscureText: true,
+                          style: const TextStyle(color: Color(0xFF0F172A), fontSize: 14),
+                          decoration: const InputDecoration(
+                            hintText: "••••••••",
+                            prefixIcon: Icon(PhosphorIcons.lockKey, color: Color(0xFF64748B), size: 18),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Login Button
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF059669),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: _isLoading ? null : _doLogin,
+                            child: _isLoading
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Text(
+                                    "LOGIN SEKARANG",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text(
+                    "Secure Cloudflare Tunnel • End-to-End Encrypted",
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Color(0xFF94A3B8),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

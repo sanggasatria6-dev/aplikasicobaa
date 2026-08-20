@@ -2,8 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'auth_provider.dart';
 
-// Ganti IP sesuai PC Anda
-final baseUrlProvider = StateProvider<String>((ref) => "http://202.155.94.249:6969");
+// URL Cloudflare Production AI Trader
+final baseUrlProvider = StateProvider<String>((ref) => "https://api.satriasangga.my.id");
 
 final dioProvider = Provider((ref) {
   final url = ref.watch(baseUrlProvider);
@@ -15,8 +15,11 @@ final dioProvider = Provider((ref) {
     receiveTimeout: const Duration(seconds: 15),
     headers: {
       'Content-Type': 'application/json',
-      // SISIPKAN TOKEN OTOMATIS
-      if (authState.token != null) 'x-secret-token': authState.token,
+      // SISIPKAN TOKEN OTOMATIS (Support Header x-secret-token & Authorization Bearer)
+      if (authState.token != null) ...{
+        'x-secret-token': authState.token,
+        'Authorization': 'Bearer ${authState.token}',
+      },
     },
   ));
 
@@ -178,7 +181,16 @@ class ApiService {
   Future<List<dynamic>> getBacktestTrades(int backtestId) async {
     try {
       final res = await _dio.get('/api/backtest/$backtestId/trades');
-      return res.data['data'];
+      return res.data['data'] ?? [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<List<dynamic>> getBacktestResults() async {
+    try {
+      final res = await _dio.get('/api/backtest/results');
+      return res.data['data'] ?? [];
     } catch (e) {
       return [];
     }

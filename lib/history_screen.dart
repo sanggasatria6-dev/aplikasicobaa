@@ -14,67 +14,166 @@ class HistoryScreen extends ConsumerWidget {
     final fmt = NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0);
 
     return Scaffold(
-      appBar: AppBar(title: const Text("HISTORY TRANSAKSI")),
+      backgroundColor: const Color(0xFFF8FAFC),
+      appBar: AppBar(
+        title: const Text("History Transaksi"),
+        actions: [
+          IconButton(
+            icon: const Icon(PhosphorIcons.arrowsClockwise, color: Color(0xFF0F172A)),
+            tooltip: "Refresh History",
+            onPressed: () => ref.refresh(historyProvider),
+          ),
+        ],
+      ),
       body: ref.watch(historyProvider).when(
         data: (list) {
-          if (list.isEmpty) return const Center(child: Text("Belum ada data penjualan.", style: TextStyle(color: Colors.grey)));
+          if (list.isEmpty) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(PhosphorIcons.clockCounterClockwise, size: 48, color: Color(0xFF94A3B8)),
+                    SizedBox(height: 12),
+                    Text(
+                      "Belum Ada Riwayat Transaksi",
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                    ),
+                    SizedBox(height: 6),
+                    Text(
+                      "Penjualan saham portofolio akan tercatat secara otomatis di sini.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
 
           return ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: list.length,
             itemBuilder: (ctx, i) {
               final item = list[i];
-              // Hitung Profit Bersih (Harga Jual Net - Harga Beli Net)
-              // Backend biasanya sudah menyimpan data cost awal. 
-              // Sell price di backend sudah dipotong fee? Kita asumsikan backend mengirim data mentah atau kita hitung selisih cost vs revenue.
-              
-              final shares = item['shares'] as int;
-              final sellPrice = (item['sell_price'] as num).toDouble();
-              final cost = (item['cost'] as num).toDouble();
-              
+              final shares = (item['shares'] as num?)?.toInt() ?? ((item['lot'] as num?)?.toInt() ?? 1) * 100;
+              final sellPrice = (item['sell_price'] as num?)?.toDouble() ?? 0.0;
+              final cost = (item['cost'] as num?)?.toDouble() ?? 0.0;
+
               // Revenue Bersih = (Shares * SellPrice) * (1 - 0.25% fee)
               final revenue = (shares * sellPrice) * (1 - 0.0025);
               final profit = revenue - cost;
               final isProfit = profit >= 0;
 
-              return Card(
-                color: const Color(0xFF1E1E1E),
-                child: ListTile(
-                  leading: Icon(
-                    isProfit ? PhosphorIcons.trendUp : PhosphorIcons.trendDown,
-                    color: isProfit ? const Color(0xFF00E676) : Colors.red,
-                    size: 32,
-                  ),
-                  title: Text(item['symbol'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("Sold Date: ${item['sell_date']}"),
-                      Text("Sell Price: ${fmt.format(sellPrice)}"),
-                    ],
-                  ),
-                  trailing: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        "${isProfit ? '+' : ''}${fmt.format(profit)}",
-                        style: TextStyle(
-                          color: isProfit ? const Color(0xFF00E676) : Colors.red,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16
-                        ),
+              final sellDate = (item['sell_date'] ?? item['created_at'] ?? '').toString().split(' ')[0];
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.02),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    // Icon Status Pill
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: isProfit ? const Color(0xFFD1FAE5) : const Color(0xFFFEE2E2),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      Text(isProfit ? "PROFIT" : "LOSS", style: TextStyle(fontSize: 10, color: Colors.grey)),
-                    ],
-                  ),
+                      child: Icon(
+                        isProfit ? PhosphorIcons.trendUpBold : PhosphorIcons.trendDownBold,
+                        color: isProfit ? const Color(0xFF059669) : const Color(0xFFDC2626),
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+
+                    // Detail Info
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                item['symbol'] ?? '-',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 16,
+                                  color: Color(0xFF0F172A),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: isProfit ? const Color(0xFFD1FAE5) : const Color(0xFFFEE2E2),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  isProfit ? "+PROFIT" : "-LOSS",
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    color: isProfit ? const Color(0xFF059669) : const Color(0xFFDC2626),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            "$sellDate • $shares Lbr @ ${fmt.format(sellPrice)}",
+                            style: const TextStyle(color: Color(0xFF64748B), fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Profit Amount
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          "${isProfit ? '+' : ''}${fmt.format(profit)}",
+                          style: TextStyle(
+                            color: isProfit ? const Color(0xFF059669) : const Color(0xFFDC2626),
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          "Modal: ${fmt.format(cost)}",
+                          style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8)),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               );
             },
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text("Error: $e")),
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: Color(0xFF059669)),
+        ),
+        error: (e, _) => Center(
+          child: Text("Error: $e", style: const TextStyle(color: Colors.red)),
+        ),
       ),
     );
   }
