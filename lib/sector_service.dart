@@ -41,11 +41,11 @@ class SectorService {
   Future<void> initDefaultSectors(String username) async {
     final doc = await _db.collection('user_preferences').doc(username).collection('sectors').get();
     if (doc.docs.isEmpty) {
-      await addOrUpdateSector(username, 0, "Finance (Bank)");
-      await addOrUpdateSector(username, 1, "Mining (Batu Bara)");
-      await addOrUpdateSector(username, 2, "Infra (Tol/Telco)");
-      await addOrUpdateSector(username, 3, "Consumer (Ritel)");
-      await addOrUpdateSector(username, 4, "Property/Others");
+      await addOrUpdateSector(username, 0, "Finance (Perbankan)");
+      await addOrUpdateSector(username, 1, "Energy (Minyak, Gas, Coal)");
+      await addOrUpdateSector(username, 2, "Mining (Emas, Nikel, Mineral)");
+      await addOrUpdateSector(username, 3, "Consumer & Retail");
+      await addOrUpdateSector(username, 4, "Infra, Telco & Others");
     }
   }
 }
