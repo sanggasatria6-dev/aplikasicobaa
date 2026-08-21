@@ -619,7 +619,33 @@ class MarketScreen extends ConsumerWidget {
                       ],
                     ),
 
-                    const SizedBox(height: 24),
+                    if (isOverBudget) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEE2E2),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFFECACA)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(PhosphorIcons.warningCircleBold, size: 16, color: Color(0xFFDC2626)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                cash <= 0
+                                    ? "Saldo kas Anda saat ini Rp 0. Silakan Top Up terlebih dahulu di Dashboard."
+                                    : "Saldo kas tidak mencukupi untuk ${lots} lot.",
+                                style: const TextStyle(fontSize: 12, color: Color(0xFFDC2626), fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
+                    const SizedBox(height: 20),
 
                     // Tombol Konfirmasi Beli
                     SizedBox(

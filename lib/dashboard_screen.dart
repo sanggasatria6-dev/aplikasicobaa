@@ -923,15 +923,49 @@ class DashboardScreen extends ConsumerWidget {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () async {
-              if (symbolCtrl.text.isNotEmpty) {
-                Navigator.pop(ctx);
+              final symbol = symbolCtrl.text.trim().toUpperCase();
+              final price = double.tryParse(priceCtrl.text) ?? 0;
+              final lot = int.tryParse(lotCtrl.text) ?? 0;
+
+              if (symbol.isEmpty || price <= 0 || lot <= 0) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    backgroundColor: Color(0xFFDC2626),
+                    content: Text("Harap masukkan kode saham, harga (>0), dan lot (>0) yang valid!"),
+                  ),
+                );
+                return;
+              }
+
+              Navigator.pop(ctx);
+              try {
                 await ref.read(apiProvider).addPortfolioPosition(
-                  symbol: symbolCtrl.text,
-                  price: double.tryParse(priceCtrl.text) ?? 0,
-                  lot: int.tryParse(lotCtrl.text) ?? 0,
+                  symbol: symbol,
+                  price: price,
+                  lot: lot,
                 );
                 ref.invalidate(portfolioProvider);
                 ref.invalidate(capitalProvider);
+                ref.invalidate(performanceProvider);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: const Color(0xFF059669),
+                      content: Text("Berhasil membeli $symbol ($lot Lot @ Rp ${price.toStringAsFixed(0)})"),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  final err = e.toString().replaceAll('Exception:', '').trim();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: const Color(0xFFDC2626),
+                      duration: const Duration(seconds: 4),
+                      content: Text("Gagal Beli: $err"),
+                    ),
+                  );
+                }
               }
             },
             child: const Text("SIMPAN ORDER", style: TextStyle(fontWeight: FontWeight.bold)),
