@@ -314,6 +314,73 @@ class MarketScreen extends ConsumerWidget {
                             ),
                           ],
                         ),
+
+                        const SizedBox(height: 10),
+
+                        // BARIS 4: AI Confidence Meter
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  "AI Conviction Score",
+                                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
+                                ),
+                                Text(
+                                  "${winRate.toStringAsFixed(0)}%",
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: winRate >= 65 ? const Color(0xFF059669) : (winRate >= 50 ? const Color(0xFF2563EB) : const Color(0xFFD97706)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: LinearProgressIndicator(
+                                value: (winRate / 100.0).clamp(0.0, 1.0),
+                                minHeight: 6,
+                                color: winRate >= 65 ? const Color(0xFF059669) : (winRate >= 50 ? const Color(0xFF2563EB) : const Color(0xFFD97706)),
+                                backgroundColor: const Color(0xFFF1F5F9),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        if ((item['reason']?.toString() ?? '').isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: const Color(0xFFF1F5F9)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(PhosphorIcons.brainBold, size: 14, color: Color(0xFF7C3AED)),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    item['reason'].toString(),
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF475569),
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),

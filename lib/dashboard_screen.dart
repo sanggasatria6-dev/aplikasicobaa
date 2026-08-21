@@ -14,6 +14,9 @@ final portfolioProvider = FutureProvider.autoDispose(
 final analysisProvider = FutureProvider.autoDispose(
   (ref) => ref.watch(apiProvider).getAnalysis(),
 );
+final performanceProvider = FutureProvider.autoDispose(
+  (ref) => ref.watch(apiProvider).getPerformanceSummary(),
+);
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -32,12 +35,13 @@ class DashboardScreen extends ConsumerWidget {
         title: const Text("Dashboard"),
         actions: [
           IconButton(
-            icon: const Icon(PhosphorIcons.arrowsClockwise, color: Color(0xFF0F172A)),
+            icon: const Icon(PhosphorIcons.arrowsClockwiseBold, color: Color(0xFF0F172A)),
             tooltip: "Refresh Data",
             onPressed: () {
               ref.invalidate(capitalProvider);
               ref.invalidate(portfolioProvider);
               ref.invalidate(analysisProvider);
+              ref.invalidate(performanceProvider);
             },
           ),
         ],
@@ -59,6 +63,7 @@ class DashboardScreen extends ConsumerWidget {
           ref.invalidate(capitalProvider);
           ref.invalidate(portfolioProvider);
           ref.invalidate(analysisProvider);
+          ref.invalidate(performanceProvider);
         },
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
@@ -66,12 +71,17 @@ class DashboardScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. KARTU SALDO (CAPITAL / WALLET)
+              // 1. KARTU RAPOR KINERJA AI (AI PERFORMANCE SCORECARD)
+              _buildPerformanceScorecard(ref, fmt),
+
+              const SizedBox(height: 16),
+
+              // 2. KARTU SALDO (CAPITAL / WALLET)
               _buildWalletCard(ref, fmt, context),
 
               const SizedBox(height: 24),
 
-              // 2. AI OPPORTUNITIES (SARAN BELI)
+              // 3. AI OPPORTUNITIES (SARAN BELI)
               _buildAiRecommendations(ref, context, fmt),
 
               const SizedBox(height: 24),
@@ -102,7 +112,7 @@ class DashboardScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 10),
 
-              // 3. LIST SAHAM AKTIF
+              // 4. LIST SAHAM AKTIF
               ref.watch(portfolioProvider).when(
                 data: (list) {
                   if (list.isEmpty) {
@@ -116,7 +126,7 @@ class DashboardScreen extends ConsumerWidget {
                       ),
                       child: Column(
                         children: const [
-                          Icon(PhosphorIcons.wallet, size: 40, color: Color(0xFF94A3B8)),
+                          Icon(PhosphorIcons.walletBold, size: 40, color: Color(0xFF94A3B8)),
                           SizedBox(height: 8),
                           Text(
                             "Portofolio Masih Kosong",
@@ -136,6 +146,7 @@ class DashboardScreen extends ConsumerWidget {
                       ),
                     );
                   }
+
 
                   return ListView.builder(
                     shrinkWrap: true,
@@ -287,6 +298,219 @@ class DashboardScreen extends ConsumerWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  // WIDGET: KARTU RAPOR KINERJA AI (AI PERFORMANCE SCORECARD)
+  Widget _buildPerformanceScorecard(WidgetRef ref, NumberFormat fmt) {
+    return ref.watch(performanceProvider).when(
+      data: (data) {
+        if (data.isEmpty) return const SizedBox();
+
+        final num netPnl = data['realized_profit_rp'] ?? 0;
+        final isProfit = netPnl >= 0;
+        final num winRate = data['realized_win_rate'] ?? 0;
+        final num profitFactor = data['profit_factor'] ?? 1.0;
+        final String regimeLabel = data['market_regime_label'] ?? "SIDEWAYS";
+        final String regimeDesc = data['market_regime_desc'] ?? "Analisis pasar aktif";
+        final int regime = data['market_regime'] ?? 1;
+        final String modelVersion = data['active_model_version'] ?? "v7-Active";
+        final dynamic btWinRate = data['active_model_win_rate'];
+
+        Color regimeBg = const Color(0xFFFEF3C7);
+        Color regimeFg = const Color(0xFFD97706);
+        IconData regimeIcon = PhosphorIcons.scalesBold;
+
+        if (regime == 2) {
+          regimeBg = const Color(0xFFD1FAE5);
+          regimeFg = const Color(0xFF059669);
+          regimeIcon = PhosphorIcons.rocketLaunchBold;
+        } else if (regime == 0) {
+          regimeBg = const Color(0xFFFEE2E2);
+          regimeFg = const Color(0xFFDC2626);
+          regimeIcon = PhosphorIcons.warningCircleBold;
+        }
+
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header Row: Judul & Market Regime Pill
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: const [
+                      Icon(PhosphorIcons.chartLineUpBold, size: 16, color: Color(0xFF2563EB)),
+                      SizedBox(width: 6),
+                      Text(
+                        "AI PERFORMANCE SCORECARD",
+                        style: TextStyle(
+                          color: Color(0xFF2563EB),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: regimeBg,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(regimeIcon, size: 12, color: regimeFg),
+                        const SizedBox(width: 4),
+                        Text(
+                          regimeLabel,
+                          style: TextStyle(
+                            color: regimeFg,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Grid 4 Metrik
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildMetricTile(
+                      "Realized PnL",
+                      "${isProfit ? '+' : ''}${fmt.format(netPnl)}",
+                      isProfit ? const Color(0xFF059669) : const Color(0xFFDC2626),
+                      isProfit ? const Color(0xFFD1FAE5) : const Color(0xFFFEE2E2),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildMetricTile(
+                      "Live Win Rate",
+                      "${winRate.toStringAsFixed(1)}%",
+                      const Color(0xFF2563EB),
+                      const Color(0xFFEFF6FF),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildMetricTile(
+                      "Profit Factor",
+                      "${profitFactor.toStringAsFixed(2)}x",
+                      const Color(0xFF059669),
+                      const Color(0xFFECFDF5),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildMetricTile(
+                      "Model AI Aktif",
+                      modelVersion,
+                      const Color(0xFF7C3AED),
+                      const Color(0xFFF5F3FF),
+                      subtitle: btWinRate != null ? "BT WR: $btWinRate%" : null,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+
+              // Tactical Stance Bar
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFF1F5F9)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(PhosphorIcons.infoBold, size: 14, color: Color(0xFF64748B)),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        regimeDesc,
+                        style: const TextStyle(
+                          color: Color(0xFF64748B),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+      loading: () => const SizedBox(),
+      error: (_, __) => const SizedBox(),
+    );
+  }
+
+  Widget _buildMetricTile(String label, String value, Color textColor, Color bgColor, {String? subtitle}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF64748B)),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: textColor,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 1),
+            Text(
+              subtitle,
+              style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: textColor.withOpacity(0.8)),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -478,7 +702,7 @@ class DashboardScreen extends ConsumerWidget {
                     }
 
                     return SizedBox(
-                      height: 160,
+                      height: 175,
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
                         itemCount: suggestions.length,
@@ -486,9 +710,10 @@ class DashboardScreen extends ConsumerWidget {
                           final item = suggestions[i];
                           final rec = item['recommendation'] ?? '';
                           final isStrong = rec.contains("STRONG");
+                          final num prob = (item['prediction_probability'] as num? ?? 0);
 
                           return Container(
-                            width: 175,
+                            width: 185,
                             margin: const EdgeInsets.only(right: 12),
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
@@ -521,22 +746,21 @@ class DashboardScreen extends ConsumerWidget {
                                         color: Color(0xFF0F172A),
                                       ),
                                     ),
-                                    if (isStrong)
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFFEF3C7),
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        child: const Text(
-                                          "🔥 TOP",
-                                          style: TextStyle(
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.bold,
-                                            color: Color(0xFFB45309),
-                                          ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: isStrong ? const Color(0xFFFEF3C7) : const Color(0xFFD1FAE5),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        isStrong ? "🔥 TOP" : "${prob.toStringAsFixed(0)}%",
+                                        style: TextStyle(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.bold,
+                                          color: isStrong ? const Color(0xFFB45309) : const Color(0xFF059669),
                                         ),
                                       ),
+                                    ),
                                   ],
                                 ),
                                 Column(
@@ -556,6 +780,16 @@ class DashboardScreen extends ConsumerWidget {
                                         color: Color(0xFF059669),
                                         fontSize: 11,
                                         fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(2),
+                                      child: LinearProgressIndicator(
+                                        value: (prob / 100.0).clamp(0.0, 1.0),
+                                        minHeight: 3,
+                                        color: const Color(0xFF059669),
+                                        backgroundColor: const Color(0xFFE2E8F0),
                                       ),
                                     ),
                                   ],
@@ -609,13 +843,11 @@ class DashboardScreen extends ConsumerWidget {
                     );
                   },
                   loading: () => const SizedBox(),
-                  error: (_, __) => const Text("Gagal load portfolio filter"),
+                  error: (_, __) => const SizedBox(),
                 );
               },
-              loading: () => const Center(
-                child: LinearProgressIndicator(color: Color(0xFF059669)),
-              ),
-              error: (e, _) => const Text("Gagal load market data"),
+              loading: () => const LinearProgressIndicator(color: Color(0xFF059669)),
+              error: (_, __) => const Text("Gagal memuat data rekomendasi."),
             );
           },
         ),

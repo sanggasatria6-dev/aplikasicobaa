@@ -187,6 +187,15 @@ class ApiService {
     }
   }
 
+  Future<Map<String, dynamic>> getPerformanceSummary() async {
+    try {
+      final res = await _dio.get('/api/performance/summary');
+      return res.data['data'] ?? {};
+    } catch (e) {
+      return {};
+    }
+  }
+
   Future<List<dynamic>> getBacktestResults() async {
     try {
       final res = await _dio.get('/api/backtest/results');
