@@ -420,7 +420,6 @@ class MarketScreen extends ConsumerWidget {
       showModalBottomSheet(
         context: context,
         backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
         isScrollControlled: true,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),

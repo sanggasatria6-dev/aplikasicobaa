@@ -666,7 +666,6 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
-      surfaceTintColor: Colors.white,
       isScrollControlled: true,
       useSafeArea: true,
       shape: const RoundedRectangleBorder(
