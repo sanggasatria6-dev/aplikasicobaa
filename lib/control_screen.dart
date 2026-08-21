@@ -650,6 +650,7 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
         .where((e) => e.key.startsWith('bt_') && e.key != 'bt_backtest_id')
         .toList();
     final backtestId = metrics['bt_backtest_id'];
+    final clData = metrics['continual_learning'] as Map<String, dynamic>?;
 
     showDialog(
       context: context,
@@ -661,7 +662,7 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              "Rapor Backtest",
+              "Rapor Model & Backtest",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
             ),
             const SizedBox(height: 2),
@@ -676,6 +677,29 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (clData != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F3FF),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFDDD6FE)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(PhosphorIcons.brainBold, color: Color(0xFF7C3AED), size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          "Continual Learning: Belajar dari ${clData['referenced_trainings_count'] ?? 0} model sebelumnya (${clData['hard_negatives_boosted'] ?? 0} pola koreksi risiko).",
+                          style: const TextStyle(fontSize: 11, color: Color(0xFF5B21B6), fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               Flexible(
                 child: backtestData.isEmpty
                     ? const Padding(
