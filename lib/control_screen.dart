@@ -118,8 +118,40 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        // 1. STATUS MONITOR (JIKA SEDANG RUNNING)
-        if (isRunning) ...[
+        // 1. STATUS MONITOR (JIKA SEDANG RUNNING ATAU ERROR)
+        if (step == "ERROR") ...[
+          Container(
+            padding: const EdgeInsets.all(16),
+            margin: const EdgeInsets.only(bottom: 20),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFEE2E2),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFFCA5A5)),
+            ),
+            child: Row(
+              children: [
+                const Icon(PhosphorIcons.warningOctagonBold, color: Color(0xFFDC2626), size: 28),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "PERINGATAN SISTEM:",
+                        style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF991B1B), fontSize: 13),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        message,
+                        style: const TextStyle(color: Color(0xFFDC2626), fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ] else if (isRunning) ...[
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -206,11 +238,33 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
                 _buildActionCard(
                   context,
                   "Update Market Data",
-                  "Download harga & indikator teknikal terbaru",
+                  "Download harga & perbarui analisa seluruh saham",
                   PhosphorIcons.cloudArrowDownBold,
                   const Color(0xFF2563EB),
                   const Color(0xFFEFF6FF),
-                  () => ref.read(apiProvider).triggerUpdate(),
+                  () async {
+                    try {
+                      await ref.read(apiProvider).triggerUpdate();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("🚀 Update Data & Analisa Saham dimulai! Pantau status di atas."),
+                            backgroundColor: Color(0xFF2563EB),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text("❌ Gagal memulai update: ${e.toString().replaceAll('Exception:', '').trim()}"),
+                            backgroundColor: const Color(0xFFDC2626),
+                            duration: const Duration(seconds: 4),
+                          ),
+                        );
+                      }
+                    }
+                  },
                 ),
                 _buildActionCard(
                   context,
@@ -220,14 +274,25 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
                   const Color(0xFFD97706),
                   const Color(0xFFFFFBEB),
                   () async {
-                    await ref.read(apiProvider).triggerBacktestOnly();
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Backtest dimulai... Pantau progress di atas."),
-                          backgroundColor: Color(0xFF0F172A),
-                        ),
-                      );
+                    try {
+                      await ref.read(apiProvider).triggerBacktestOnly();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("📊 Backtest simulasi dimulai!"),
+                            backgroundColor: Color(0xFFD97706),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text("❌ Gagal memulai backtest: ${e.toString().replaceAll('Exception:', '').trim()}"),
+                            backgroundColor: const Color(0xFFDC2626),
+                          ),
+                        );
+                      }
                     }
                   },
                 ),
@@ -538,8 +603,27 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
                             icon: const Icon(PhosphorIcons.trashBold, color: Color(0xFFDC2626), size: 20),
                             tooltip: "Hapus dari Watchlist",
                             onPressed: () async {
-                              await ref.read(apiProvider).removeStockConfig(ticker);
-                              ref.invalidate(configProvider);
+                              try {
+                                await ref.read(apiProvider).removeStockConfig(ticker);
+                                ref.invalidate(configProvider);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text("🗑️ Saham $ticker dihapus dari watchlist."),
+                                      backgroundColor: const Color(0xFF0F172A),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text("❌ Gagal hapus saham: $e"),
+                                      backgroundColor: const Color(0xFFDC2626),
+                                    ),
+                                  );
+                                }
+                              }
                             },
                           ),
                         ],
@@ -1033,7 +1117,27 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
             ),
             onPressed: () async {
               Navigator.pop(ctx);
-              await ref.read(apiProvider).triggerTraining();
+              try {
+                await ref.read(apiProvider).triggerTraining();
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("🧠 Pelatihan Model AI dimulai! Pantau status progress di atas."),
+                      backgroundColor: Color(0xFF7C3AED),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("❌ Gagal memulai training: ${e.toString().replaceAll('Exception:', '').trim()}"),
+                      backgroundColor: const Color(0xFFDC2626),
+                      duration: const Duration(seconds: 4),
+                    ),
+                  );
+                }
+              }
             },
             child: const Text("GAS TRAINING!", style: TextStyle(fontWeight: FontWeight.bold)),
           ),
@@ -1123,13 +1227,40 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
                 onPressed: () async {
-                  if (symbolCtrl.text.isNotEmpty && selectedSector != null) {
-                    await ref.read(apiProvider).addStockConfig(
-                      symbolCtrl.text.toUpperCase(),
-                      selectedSector!,
+                  final sym = symbolCtrl.text.trim().toUpperCase();
+                  if (sym.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Kode saham tidak boleh kosong!"), backgroundColor: Color(0xFFDC2626)),
                     );
+                    return;
+                  }
+                  if (selectedSector == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Pilih sektor saham terlebih dahulu!"), backgroundColor: Color(0xFFDC2626)),
+                    );
+                    return;
+                  }
+                  Navigator.pop(ctx);
+                  try {
+                    await ref.read(apiProvider).addStockConfig(sym, selectedSector!);
                     ref.invalidate(configProvider);
-                    if (context.mounted) Navigator.pop(ctx);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text("✅ Saham $sym berhasil ditambahkan ke watchlist!"),
+                          backgroundColor: const Color(0xFF059669),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text("❌ Gagal tambah saham: ${e.toString().replaceAll('Exception:', '').trim()}"),
+                          backgroundColor: const Color(0xFFDC2626),
+                        ),
+                      );
+                    }
                   }
                 },
                 child: const Text("SIMPAN", style: TextStyle(fontWeight: FontWeight.bold)),

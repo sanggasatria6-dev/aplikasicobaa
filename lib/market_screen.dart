@@ -393,7 +393,45 @@ class MarketScreen extends ConsumerWidget {
           child: CircularProgressIndicator(color: Color(0xFF059669)),
         ),
         error: (e, _) => Center(
-          child: Text("Error: $e", style: const TextStyle(color: Colors.red)),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFFECACA)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(PhosphorIcons.warningOctagonBold, size: 40, color: Color(0xFFDC2626)),
+                  const SizedBox(height: 10),
+                  const Text(
+                    "Gagal Memuat Analisa Pasar",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF0F172A)),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    "$e",
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF059669),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    icon: const Icon(PhosphorIcons.arrowsClockwiseBold, size: 16),
+                    label: const Text("COBA LAGI"),
+                    onPressed: () => ref.refresh(analysisProvider),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );

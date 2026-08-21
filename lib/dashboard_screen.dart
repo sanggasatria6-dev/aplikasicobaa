@@ -1009,13 +1009,42 @@ class DashboardScreen extends ConsumerWidget {
             ),
             onPressed: () async {
               final val = double.tryParse(ctrl.text) ?? 0;
-              if (val > 0) {
+              if (val <= 0) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("Nominal harus lebih besar dari 0!"),
+                    backgroundColor: Color(0xFFDC2626),
+                  ),
+                );
+                return;
+              }
+              Navigator.pop(context);
+              try {
                 await ref.read(apiProvider).adjustCapital(
                   isAdd ? val : -val,
                   "Manual App",
                 );
                 ref.invalidate(capitalProvider);
-                Navigator.pop(context);
+                ref.invalidate(performanceProvider);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: const Color(0xFF059669),
+                      content: Text(isAdd
+                          ? "✅ Berhasil Top Up saldo Rp ${NumberFormat.currency(locale: 'id', symbol: '', decimalDigits: 0).format(val)}"
+                          : "✅ Berhasil Tarik dana Rp ${NumberFormat.currency(locale: 'id', symbol: '', decimalDigits: 0).format(val)}"),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: const Color(0xFFDC2626),
+                      content: Text("❌ Gagal ubah saldo: ${e.toString().replaceAll('Exception:', '').trim()}"),
+                    ),
+                  );
+                }
               }
             },
             child: const Text("KONFIRMASI", style: TextStyle(fontWeight: FontWeight.bold)),
@@ -1068,14 +1097,42 @@ class DashboardScreen extends ConsumerWidget {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () async {
-              if (ctrl.text.isNotEmpty) {
+              final sellPrice = double.tryParse(ctrl.text) ?? 0;
+              if (sellPrice <= 0) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("Harga jual harus lebih besar dari 0!"),
+                    backgroundColor: Color(0xFFDC2626),
+                  ),
+                );
+                return;
+              }
+              Navigator.pop(context);
+              try {
                 await ref.read(apiProvider).sellPortfolioPosition(
                   item['id'],
-                  double.tryParse(ctrl.text) ?? 0,
+                  sellPrice,
                 );
                 ref.invalidate(portfolioProvider);
                 ref.invalidate(capitalProvider);
-                Navigator.pop(context);
+                ref.invalidate(performanceProvider);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: const Color(0xFF059669),
+                      content: Text("✅ Berhasil menjual ${item['symbol']} @ Rp ${sellPrice.toStringAsFixed(0)}!"),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: const Color(0xFFDC2626),
+                      content: Text("❌ Gagal jual: ${e.toString().replaceAll('Exception:', '').trim()}"),
+                    ),
+                  );
+                }
               }
             },
             child: const Text("JUAL SEKARANG", style: TextStyle(fontWeight: FontWeight.bold)),
