@@ -246,27 +246,6 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>> getTelegramConfig() async {
-    try {
-      final res = await _dio.get('/api/notifications/telegram-config');
-      return res.data['data'] ?? {'bot_token': '', 'chat_id': '', 'is_enabled': false};
-    } catch (e) {
-      return {'bot_token': '', 'chat_id': '', 'is_enabled': false};
-    }
-  }
-
-  Future<bool> saveTelegramConfig(String botToken, String chatId) async {
-    try {
-      final res = await _dio.post('/api/notifications/telegram-config', data: {
-        'bot_token': botToken,
-        'chat_id': chatId,
-      });
-      return res.data['success'] ?? false;
-    } catch (e) {
-      return false;
-    }
-  }
-
   Future<bool> sendTestNotification() async {
     try {
       final res = await _dio.post('/api/notifications/test');
@@ -281,11 +260,6 @@ class ApiService {
 final notificationsProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
   final api = ref.watch(apiProvider);
   return api.getNotifications();
-});
-
-final telegramConfigProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
-  final api = ref.watch(apiProvider);
-  return api.getTelegramConfig();
 });
 
 final systemStatusProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {

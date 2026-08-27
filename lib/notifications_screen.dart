@@ -27,9 +27,21 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(PhosphorIcons.paperPlaneTiltBold, color: Color(0xFF0284C7)),
-            tooltip: "Pengaturan Telegram",
-            onPressed: () => _showTelegramConfigDialog(context, ref),
+            icon: const Icon(PhosphorIcons.bellRingingBold, color: Color(0xFF059669)),
+            tooltip: "Tes Notifikasi HP",
+            onPressed: () async {
+              final ok = await ref.read(apiProvider).sendTestNotification();
+              ref.invalidate(notificationsProvider);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(ok ? "Notifikasi uji coba berhasil dikirim!" : "Gagal mengirim notifikasi uji coba"),
+                    backgroundColor: ok ? const Color(0xFF059669) : const Color(0xFFDC2626),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
           ),
           IconButton(
             icon: const Icon(PhosphorIcons.checkCircleBold, color: Color(0xFF059669)),
@@ -476,134 +488,5 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     } catch (_) {
       return dtStr;
     }
-  }
-
-  // DIALOG: PENGATURAN TELEGRAM BOT
-  void _showTelegramConfigDialog(BuildContext context, WidgetRef ref) {
-    final configAsync = ref.read(telegramConfigProvider);
-    final botTokenCtrl = TextEditingController();
-    final chatIdCtrl = TextEditingController();
-
-    configAsync.whenData((data) {
-      botTokenCtrl.text = data['bot_token'] ?? '';
-      chatIdCtrl.text = data['chat_id'] ?? '';
-    });
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE0F2FE),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(PhosphorIcons.paperPlaneTiltBold, color: Color(0xFF0284C7), size: 22),
-            ),
-            const SizedBox(width: 10),
-            const Expanded(
-              child: Text(
-                "Notifikasi Telegram Instan",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "Hubungkan Bot Telegram agar Anda menerima notifikasi sinyal BELI & JUAL secara instan langsung ke HP Anda setiap saat!",
-                style: TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.4),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: botTokenCtrl,
-                decoration: InputDecoration(
-                  labelText: "Telegram Bot Token",
-                  hintText: "Contoh: 123456789:ABCdefGhI...",
-                  labelStyle: const TextStyle(fontSize: 12),
-                  prefixIcon: const Icon(PhosphorIcons.robotBold, size: 18),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: chatIdCtrl,
-                decoration: InputDecoration(
-                  labelText: "Telegram Chat ID / User ID",
-                  hintText: "Contoh: 987654321",
-                  labelStyle: const TextStyle(fontSize: 12),
-                  prefixIcon: const Icon(PhosphorIcons.userBold, size: 18),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(PhosphorIcons.infoBold, size: 16, color: Color(0xFF0284C7)),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        "Tips: Buat bot via @BotFather di Telegram untuk dapat Token, lalu chat @userinfobot untuk dapatkan Chat ID Anda.",
-                        style: TextStyle(fontSize: 11, color: Color(0xFF475569)),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Batal", style: TextStyle(color: Color(0xFF64748B))),
-          ),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0284C7),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            icon: const Icon(PhosphorIcons.floppyDiskBold, size: 16),
-            label: const Text("Simpan & Hubungkan"),
-            onPressed: () async {
-              final ok = await ref.read(apiProvider).saveTelegramConfig(
-                    botTokenCtrl.text.trim(),
-                    chatIdCtrl.text.trim(),
-                  );
-              ref.invalidate(telegramConfigProvider);
-              if (ctx.mounted) {
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(ok ? "Pengaturan Telegram berhasil disimpan!" : "Gagal menyimpan"),
-                    backgroundColor: ok ? const Color(0xFF059669) : const Color(0xFFDC2626),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              }
-            },
-          ),
-        ],
-      ),
-    );
   }
 }
