@@ -287,3 +287,8 @@ final telegramConfigProvider = FutureProvider.autoDispose<Map<String, dynamic>>(
   final api = ref.watch(apiProvider);
   return api.getTelegramConfig();
 });
+
+final systemStatusProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
+  final api = ref.watch(apiProvider);
+  return api.getSystemStatus();
+});

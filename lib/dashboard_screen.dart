@@ -91,6 +91,7 @@ class DashboardScreen extends ConsumerWidget {
               ref.invalidate(analysisProvider);
               ref.invalidate(performanceProvider);
               ref.invalidate(notificationsProvider);
+              ref.invalidate(systemStatusProvider);
             },
           ),
         ],
@@ -113,6 +114,8 @@ class DashboardScreen extends ConsumerWidget {
           ref.invalidate(portfolioProvider);
           ref.invalidate(analysisProvider);
           ref.invalidate(performanceProvider);
+          ref.invalidate(notificationsProvider);
+          ref.invalidate(systemStatusProvider);
         },
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
@@ -120,6 +123,9 @@ class DashboardScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // 0. KARTU STATUS EKSEKUSI AI AUTOPILOT (CRONTAB LINUX)
+              _buildAutopilotStatusCard(ref),
+
               // 1. KARTU RAPOR KINERJA AI (AI PERFORMANCE SCORECARD)
               _buildPerformanceScorecard(ref, fmt),
 
@@ -348,6 +354,191 @@ class DashboardScreen extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+
+  // WIDGET: KARTU STATUS EKSEKUSI AI AUTOPILOT (CRONTAB LINUX)
+  Widget _buildAutopilotStatusCard(WidgetRef ref) {
+    final statusAsync = ref.watch(systemStatusProvider);
+
+    return statusAsync.maybeWhen(
+      data: (data) {
+        final lastRun = data['last_run'] as String? ?? '-';
+        final lastStatus = (data['last_status'] as String? ?? 'SUKSES').toUpperCase();
+        final lastSummary = data['last_summary'] as String? ?? '9 Saham Teranalisis';
+        final isRunning = data['is_running'] == true;
+        final schedule = data['schedule'] as String? ?? 'Senin-Jumat 10:30 & 14:50 WIB';
+
+        final isSuccess = lastStatus.contains('SUKSES') || lastStatus.contains('SUCCESS');
+        final badgeColor = isSuccess ? const Color(0xFF059669) : const Color(0xFFDC2626);
+        final badgeBg = isSuccess ? const Color(0xFFECFDF5) : const Color(0xFFFEF2F2);
+
+        return Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          PhosphorIcons.clockClockwiseBold,
+                          size: 18,
+                          color: Color(0xFF0F172A),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "AI AUTOPILOT STATUS",
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF64748B),
+                              letterSpacing: 0.6,
+                            ),
+                          ),
+                          Text(
+                            isRunning ? "Sedang Menganalisis..." : "Crontab Linux Aktif",
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: isRunning ? const Color(0xFFEFF6FF) : badgeBg,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 7,
+                          height: 7,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isRunning ? const Color(0xFF2563EB) : badgeColor,
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          isRunning ? "BERJALAN" : lastStatus,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: isRunning ? const Color(0xFF2563EB) : badgeColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Terakhir Dijalankan:",
+                          style: TextStyle(color: Color(0xFF64748B), fontSize: 12),
+                        ),
+                        Text(
+                          lastRun != '-' ? "$lastRun WIB" : "Belum Pernah Run",
+                          style: const TextStyle(
+                            color: Color(0xFF0F172A),
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Ringkasan:",
+                          style: TextStyle(color: Color(0xFF64748B), fontSize: 12),
+                        ),
+                        Flexible(
+                          child: Text(
+                            lastSummary,
+                            style: const TextStyle(
+                              color: Color(0xFF059669),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.end,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Jadwal Rutin:",
+                          style: TextStyle(color: Color(0xFF64748B), fontSize: 12),
+                        ),
+                        Text(
+                          schedule,
+                          style: const TextStyle(
+                            color: Color(0xFF64748B),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+      orElse: () => const SizedBox(),
     );
   }
 
