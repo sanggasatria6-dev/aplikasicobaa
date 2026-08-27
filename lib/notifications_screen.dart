@@ -477,13 +477,18 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   String _formatTimestamp(String dtStr) {
     if (dtStr.isEmpty) return '';
     try {
-      final dt = DateTime.parse(dtStr);
+      DateTime dt;
+      if (dtStr.contains('T') || dtStr.contains('Z')) {
+        dt = DateTime.parse(dtStr).toLocal();
+      } else {
+        dt = DateTime.parse(dtStr.replaceAll(' ', 'T'));
+      }
       final now = DateTime.now();
       final diff = now.difference(dt);
 
-      if (diff.inMinutes < 1) return 'Baru saja';
-      if (diff.inMinutes < 60) return '${diff.inMinutes}m lalu';
-      if (diff.inHours < 24) return '${diff.inHours}j lalu';
+      if (diff.inSeconds < 60 && diff.inSeconds >= -5) return 'Baru saja';
+      if (diff.inMinutes < 60 && diff.inMinutes > 0) return '${diff.inMinutes}m lalu';
+      if (diff.inHours < 24 && diff.inHours > 0) return '${diff.inHours}j lalu';
       return DateFormat('dd MMM, HH:mm').format(dt);
     } catch (_) {
       return dtStr;
