@@ -9,6 +9,7 @@ import 'dashboard_screen.dart';
 import 'market_screen.dart';   // Akan dibuat di Part 2
 import 'control_screen.dart';  // Akan dibuat di Part 2
 import 'history_screen.dart'; // Import halaman baru
+import 'push_notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -88,13 +89,13 @@ class MyApp extends StatelessWidget {
 }
 
 // NAVIGASI UTAMA (4 TAB)
-class MainNav extends StatefulWidget {
+class MainNav extends ConsumerStatefulWidget {
   const MainNav({super.key});
   @override
-  State<MainNav> createState() => _MainNavState();
+  ConsumerState<MainNav> createState() => _MainNavState();
 }
 
-class _MainNavState extends State<MainNav> {
+class _MainNavState extends ConsumerState<MainNav> {
   int _idx = 0;
   final _screens = [
     const DashboardScreen(),
@@ -102,6 +103,14 @@ class _MainNavState extends State<MainNav> {
     const HistoryScreen(),
     const ControlScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      PushNotificationService.initialize(ref, context);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

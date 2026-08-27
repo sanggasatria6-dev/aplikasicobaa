@@ -204,4 +204,86 @@ class ApiService {
       return [];
     }
   }
+
+  // --- NOTIFIKASI ONLINE & TELEGRAM ---
+
+  Future<Map<String, dynamic>> getNotifications({int limit = 50, bool unreadOnly = false}) async {
+    try {
+      final res = await _dio.get('/api/notifications', queryParameters: {
+        'limit': limit,
+        'unread_only': unreadOnly,
+      });
+      return res.data ?? {'unread_count': 0, 'data': []};
+    } catch (e) {
+      return {'unread_count': 0, 'data': []};
+    }
+  }
+
+  Future<bool> markNotificationRead(int notifId) async {
+    try {
+      final res = await _dio.post('/api/notifications/$notifId/read');
+      return res.data['success'] ?? false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> markAllNotificationsRead() async {
+    try {
+      final res = await _dio.post('/api/notifications/read-all');
+      return res.data['success'] ?? false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> deleteNotification(int notifId) async {
+    try {
+      final res = await _dio.delete('/api/notifications/$notifId');
+      return res.data['success'] ?? false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>> getTelegramConfig() async {
+    try {
+      final res = await _dio.get('/api/notifications/telegram-config');
+      return res.data['data'] ?? {'bot_token': '', 'chat_id': '', 'is_enabled': false};
+    } catch (e) {
+      return {'bot_token': '', 'chat_id': '', 'is_enabled': false};
+    }
+  }
+
+  Future<bool> saveTelegramConfig(String botToken, String chatId) async {
+    try {
+      final res = await _dio.post('/api/notifications/telegram-config', data: {
+        'bot_token': botToken,
+        'chat_id': chatId,
+      });
+      return res.data['success'] ?? false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> sendTestNotification() async {
+    try {
+      final res = await _dio.post('/api/notifications/test');
+      return res.data['success'] ?? false;
+    } catch (e) {
+      return false;
+    }
+  }
 }
+
+// Providers for Notifications
+final notificationsProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
+  final api = ref.watch(apiProvider);
+  return api.getNotifications();
+});
+
+final telegramConfigProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
+  final api = ref.watch(apiProvider);
+  return api.getTelegramConfig();
+});

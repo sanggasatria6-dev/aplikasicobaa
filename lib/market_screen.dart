@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'api_service.dart';
+import 'notifications_screen.dart';
 
 final analysisProvider = FutureProvider.autoDispose((ref) => ref.watch(apiProvider).getAnalysis());
 final capitalProvider = FutureProvider.autoDispose((ref) => ref.watch(apiProvider).getCapital());
@@ -19,6 +20,53 @@ class MarketScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text("Market Advisor"),
         actions: [
+          Consumer(
+            builder: (ctx, watchRef, _) {
+              final notifsAsync = watchRef.watch(notificationsProvider);
+              final unread = notifsAsync.maybeWhen(
+                data: (res) => res['unread_count'] as int? ?? 0,
+                orElse: () => 0,
+              );
+
+              return IconButton(
+                icon: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    const Icon(PhosphorIcons.bellBold, color: Color(0xFF0F172A)),
+                    if (unread > 0)
+                      Positioned(
+                        right: -2,
+                        top: -2,
+                        child: Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFDC2626),
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                          child: Text(
+                            unread > 99 ? '99+' : '$unread',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                tooltip: "Notifikasi Sinyal ($unread)",
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                  );
+                },
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(PhosphorIcons.scanBold, color: Color(0xFF059669)),
             tooltip: "Scan Market AI Sekarang",
@@ -35,7 +83,10 @@ class MarketScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(PhosphorIcons.arrowsClockwise, color: Color(0xFF0F172A)),
             tooltip: "Refresh",
-            onPressed: () => ref.refresh(analysisProvider),
+            onPressed: () {
+              ref.refresh(analysisProvider);
+              ref.refresh(notificationsProvider);
+            },
           ),
         ],
       ),
