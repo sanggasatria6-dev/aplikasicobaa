@@ -367,7 +367,7 @@ class DashboardScreen extends ConsumerWidget {
         final lastStatus = (data['last_status'] as String? ?? 'SUKSES').toUpperCase();
         final lastSummary = data['last_summary'] as String? ?? '9 Saham Teranalisis';
         final isRunning = data['is_running'] == true;
-        final schedule = data['schedule'] as String? ?? 'Senin-Jumat 10:30 & 14:50 WIB';
+        final schedule = data['schedule'] as String? ?? 'Senin-Jumat 11:30 & 15:50 WITA';
 
         final isSuccess = lastStatus.contains('SUKSES') || lastStatus.contains('SUCCESS');
         final badgeColor = isSuccess ? const Color(0xFF059669) : const Color(0xFFDC2626);
@@ -482,7 +482,7 @@ class DashboardScreen extends ConsumerWidget {
                           style: TextStyle(color: Color(0xFF64748B), fontSize: 12),
                         ),
                         Text(
-                          lastRun != '-' ? "$lastRun WIB" : "Belum Pernah Run",
+                          lastRun != '-' ? "$lastRun WITA" : "Belum Pernah Run",
                           style: const TextStyle(
                             color: Color(0xFF0F172A),
                             fontSize: 12,

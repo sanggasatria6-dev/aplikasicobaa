@@ -61,6 +61,11 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             },
           ),
           IconButton(
+            icon: const Icon(PhosphorIcons.trashBold, color: Color(0xFFDC2626)),
+            tooltip: "Hapus Semua Notifikasi",
+            onPressed: () => _confirmDeleteAll(context, ref),
+          ),
+          IconButton(
             icon: const Icon(PhosphorIcons.arrowsClockwiseBold),
             tooltip: "Segarkan",
             onPressed: () => ref.invalidate(notificationsProvider),
@@ -493,5 +498,62 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     } catch (_) {
       return dtStr;
     }
+  }
+
+  void _confirmDeleteAll(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEE2E2),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(PhosphorIcons.trashBold, color: Color(0xFFDC2626), size: 20),
+            ),
+            const SizedBox(width: 10),
+            const Text("Hapus Semua?", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: const Text(
+          "Semua riwayat notifikasi sinyal akan dihapus permanen. Lanjutkan?",
+          style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Batal", style: TextStyle(color: Color(0xFF64748B))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final ok = await ref.read(apiProvider).deleteAllNotifications();
+              ref.invalidate(notificationsProvider);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(ok ? "Semua notifikasi berhasil dibersihkan!" : "Gagal menghapus notifikasi"),
+                    backgroundColor: ok ? const Color(0xFF059669) : const Color(0xFFDC2626),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+            child: const Text("Hapus Semua"),
+          ),
+        ],
+      ),
+    );
   }
 }

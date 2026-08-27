@@ -246,6 +246,15 @@ class ApiService {
     }
   }
 
+  Future<bool> deleteAllNotifications() async {
+    try {
+      final res = await _dio.delete('/api/notifications/clear-all');
+      return res.data['success'] ?? false;
+    } catch (e) {
+      return false;
+    }
+  }
+
   Future<bool> sendTestNotification() async {
     try {
       final res = await _dio.post('/api/notifications/test');
