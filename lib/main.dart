@@ -11,6 +11,8 @@ import 'control_screen.dart';  // Akan dibuat di Part 2
 import 'history_screen.dart'; // Import halaman baru
 import 'push_notification_service.dart';
 
+final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(); // Konek ke Firebase
@@ -23,6 +25,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      scaffoldMessengerKey: rootScaffoldMessengerKey,
       title: 'AI Trader Pro',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(

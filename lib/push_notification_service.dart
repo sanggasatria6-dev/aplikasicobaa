@@ -2,6 +2,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'api_service.dart';
+import 'main.dart';
 
 // Background message handler
 @pragma('vm:entry-point')
@@ -66,11 +67,13 @@ class PushNotificationService {
             bannerColor = const Color(0xFFD97706);
           }
 
-          ScaffoldMessenger.of(context).showSnackBar(
+          rootScaffoldMessengerKey.currentState?.showSnackBar(
             SnackBar(
               backgroundColor: bannerColor,
               behavior: SnackBarBehavior.floating,
               duration: const Duration(seconds: 4),
+              margin: const EdgeInsets.only(bottom: 24, left: 16, right: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
