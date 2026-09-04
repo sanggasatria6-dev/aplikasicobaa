@@ -9,6 +9,7 @@ import 'dashboard_screen.dart';
 import 'market_screen.dart';   // Akan dibuat di Part 2
 import 'control_screen.dart';  // Akan dibuat di Part 2
 import 'history_screen.dart'; // Import halaman baru
+import 'copilot_screen.dart'; // Import Trader Copilot Chat
 import 'push_notification_service.dart';
 
 final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
@@ -103,6 +104,7 @@ class _MainNavState extends ConsumerState<MainNav> {
   final _screens = [
     const DashboardScreen(),
     const MarketScreen(),
+    const CopilotScreen(),
     const HistoryScreen(),
     const ControlScreen(),
   ];
@@ -139,6 +141,11 @@ class _MainNavState extends ConsumerState<MainNav> {
               icon: Icon(PhosphorIcons.chartLineUp, color: Color(0xFF64748B)),
               selectedIcon: Icon(PhosphorIcons.chartLineUpFill, color: Color(0xFF059669)),
               label: "Market",
+            ),
+            NavigationDestination(
+              icon: Icon(PhosphorIcons.chatTeardropDots, color: Color(0xFF64748B)),
+              selectedIcon: Icon(PhosphorIcons.chatTeardropDotsFill, color: Color(0xFF059669)),
+              label: "Copilot",
             ),
             NavigationDestination(
               icon: Icon(PhosphorIcons.clockCounterClockwise, color: Color(0xFF64748B)),

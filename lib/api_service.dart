@@ -263,6 +263,25 @@ class ApiService {
       return false;
     }
   }
+
+  // --- 🤖 COPILOT AI CHAT ---
+  Future<String> sendCopilotMessage(String message, {List<Map<String, String>>? history}) async {
+    try {
+      final res = await _dio.post('/api/copilot/chat', data: {
+        "message": message,
+        "history": history ?? [],
+      });
+      if (res.data != null && res.data['reply'] != null) {
+        return res.data['reply'].toString();
+      }
+      return "Maaf, tidak ada respon dari Copilot.";
+    } on DioException catch (e) {
+      final detail = e.response?.data?['detail'] ?? e.message ?? "Gagal terhubung ke Copilot";
+      throw detail;
+    } catch (e) {
+      throw "Terjadi kesalahan: $e";
+    }
+  }
 }
 
 // Providers for Notifications
