@@ -408,40 +408,135 @@ class _CopilotScreenState extends ConsumerState<CopilotScreen> {
   }
 
   Widget _formatMessageContent(String text, bool isUser) {
-    // Render sederhana untuk pesan dengan formatting bold dan bullet
     final textColor = isUser ? Colors.white : const Color(0xFF1E293B);
     final lines = text.split('\n');
+    final widgets = <Widget>[];
+
+    for (var rawLine in lines) {
+      final trimmed = rawLine.trim();
+
+      if (trimmed.isEmpty) {
+        widgets.add(const SizedBox(height: 4));
+        continue;
+      }
+
+      // Divider horizontal line
+      if (trimmed.startsWith('---') || trimmed.startsWith('───') || trimmed.startsWith('***')) {
+        widgets.add(Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Divider(
+            color: isUser ? Colors.white24 : const Color(0xFFE2E8F0),
+            thickness: 1,
+            height: 8,
+          ),
+        ));
+        continue;
+      }
+
+      // Markdown Table divider row (| :--- | :---: |)
+      if (trimmed.startsWith('|') && trimmed.contains('---')) {
+        continue;
+      }
+
+      // Markdown Table data row
+      if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+        final cells = trimmed.split('|').map((c) => c.trim()).where((c) => c.isNotEmpty).toList();
+        if (cells.isNotEmpty) {
+          final joined = cells.join(' • ');
+          widgets.add(Padding(
+            padding: const EdgeInsets.only(bottom: 3),
+            child: _renderFormattedLine("• $joined", textColor, isUser),
+          ));
+          continue;
+        }
+      }
+
+      // Markdown Headers (###, ##, #)
+      if (trimmed.startsWith('### ')) {
+        widgets.add(Padding(
+          padding: const EdgeInsets.only(top: 6, bottom: 4),
+          child: _renderFormattedLine(trimmed.substring(4), textColor, isUser, baseFontSize: 14.5, isHeader: true),
+        ));
+        continue;
+      }
+      if (trimmed.startsWith('## ')) {
+        widgets.add(Padding(
+          padding: const EdgeInsets.only(top: 8, bottom: 4),
+          child: _renderFormattedLine(trimmed.substring(3), textColor, isUser, baseFontSize: 15.5, isHeader: true),
+        ));
+        continue;
+      }
+      if (trimmed.startsWith('# ')) {
+        widgets.add(Padding(
+          padding: const EdgeInsets.only(top: 10, bottom: 6),
+          child: _renderFormattedLine(trimmed.substring(2), textColor, isUser, baseFontSize: 16.5, isHeader: true),
+        ));
+        continue;
+      }
+
+      // Standard / Bullet lines
+      String displayLine = rawLine;
+      if (trimmed.startsWith('* ') || trimmed.startsWith('- ')) {
+        displayLine = '• ${trimmed.substring(2)}';
+      }
+
+      widgets.add(Padding(
+        padding: const EdgeInsets.only(bottom: 3),
+        child: _renderFormattedLine(displayLine, textColor, isUser),
+      ));
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: lines.map((line) {
-        if (line.isEmpty) {
-          return const SizedBox(height: 6);
-        }
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 2),
-          child: _renderFormattedLine(line, textColor),
-        );
-      }).toList(),
+      children: widgets,
     );
   }
 
-  Widget _renderFormattedLine(String line, Color defaultColor) {
-    // Parsing sederhana untuk tanda bold **text**
+  Widget _renderFormattedLine(
+    String line,
+    Color defaultColor,
+    bool isUser, {
+    double baseFontSize = 13.5,
+    bool isHeader = false,
+  }) {
     final spans = <TextSpan>[];
-    final parts = line.split('**');
+    final boldParts = line.split('**');
 
-    for (int i = 0; i < parts.length; i++) {
-      final isBold = i % 2 == 1;
-      spans.add(TextSpan(
-        text: parts[i],
-        style: GoogleFonts.inter(
-          fontSize: 13.5,
-          height: 1.4,
-          color: defaultColor,
-          fontWeight: isBold ? FontWeight.w700 : FontWeight.w400,
-        ),
-      ));
+    for (int i = 0; i < boldParts.length; i++) {
+      final isBold = isHeader || (i % 2 == 1);
+      final chunk = boldParts[i];
+
+      // Periksa inline code `code`
+      if (chunk.contains('`')) {
+        final codeParts = chunk.split('`');
+        for (int j = 0; j < codeParts.length; j++) {
+          final isCode = j % 2 == 1;
+          if (codeParts[j].isEmpty) continue;
+          spans.add(TextSpan(
+            text: codeParts[j],
+            style: GoogleFonts.inter(
+              fontSize: isCode ? baseFontSize * 0.92 : baseFontSize,
+              height: 1.45,
+              color: isCode
+                  ? (isUser ? const Color(0xFFBBF7D0) : const Color(0xFF0F766E))
+                  : defaultColor,
+              fontWeight: isBold ? FontWeight.w700 : (isCode ? FontWeight.w600 : FontWeight.w400),
+              backgroundColor: isCode ? (isUser ? Colors.black26 : const Color(0xFFF1F5F9)) : null,
+            ),
+          ));
+        }
+      } else {
+        if (chunk.isEmpty) continue;
+        spans.add(TextSpan(
+          text: chunk,
+          style: GoogleFonts.inter(
+            fontSize: baseFontSize,
+            height: 1.45,
+            color: defaultColor,
+            fontWeight: isBold ? FontWeight.w700 : FontWeight.w400,
+          ),
+        ));
+      }
     }
 
     return RichText(
