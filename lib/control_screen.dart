@@ -646,10 +646,14 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
     String version,
     Map<String, dynamic> metrics,
   ) {
-    final backtestData = metrics.entries
-        .where((e) => e.key.startsWith('bt_') && e.key != 'bt_backtest_id')
+    final finalMetrics = metrics.entries
+        .where((e) => e.key.startsWith('bt_') && !e.key.startsWith('bt_storm_') && e.key != 'bt_backtest_id')
+        .toList();
+    final stormMetrics = metrics.entries
+        .where((e) => e.key.startsWith('bt_storm_') && e.key != 'bt_storm_backtest_id')
         .toList();
     final backtestId = metrics['bt_backtest_id'];
+    final stormBacktestId = metrics['bt_storm_backtest_id'];
     final clData = metrics['continual_learning'] as Map<String, dynamic>?;
 
     showDialog(
@@ -674,89 +678,175 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
         ),
         content: SizedBox(
           width: double.maxFinite,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (clData != null) ...[
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF5F3FF),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFDDD6FE)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(PhosphorIcons.brainBold, color: Color(0xFF7C3AED), size: 20),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          "Continual Learning: Belajar dari ${clData['referenced_trainings_count'] ?? 0} model sebelumnya (${clData['hard_negatives_boosted'] ?? 0} pola koreksi risiko).",
-                          style: const TextStyle(fontSize: 11, color: Color(0xFF5B21B6), fontWeight: FontWeight.w600),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (clData != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F3FF),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFDDD6FE)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(PhosphorIcons.brainBold, color: Color(0xFF7C3AED), size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            "Adaptive Storm Training: Model diperkuat pinalti bobot 4x-5x (${clData['hard_negatives_boosted'] ?? 0} pola koreksi risiko badai).",
+                            style: const TextStyle(fontSize: 11, color: Color(0xFF5B21B6), fontWeight: FontWeight.w600),
+                          ),
                         ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                // --- SEKSI 1: VERIFIKASI FINAL (30 HARI LIVE) ---
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFECFDF5),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(PhosphorIcons.checkCircleBold, color: Color(0xFF059669), size: 16),
+                      SizedBox(width: 6),
+                      Text(
+                        "VERIFIKASI FINAL (30 HARI LIVE)",
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF059669)),
                       ),
                     ],
                   ),
                 ),
-              ],
-              Flexible(
-                child: backtestData.isEmpty
-                    ? const Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Text("Data backtest belum tersedia.", style: TextStyle(color: Color(0xFF64748B))),
-                      )
-                    : ListView.separated(
-                        shrinkWrap: true,
-                        itemCount: backtestData.length,
-                        separatorBuilder: (_, __) => const Divider(color: Color(0xFFE2E8F0), height: 16),
-                        itemBuilder: (ctx, i) {
-                          final key = backtestData[i].key.replaceFirst('bt_', '');
-                          final value = backtestData[i].value.toString();
-                          return Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                key,
-                                style: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
-                              ),
-                              Text(
-                                value,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF059669),
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-              ),
-              const SizedBox(height: 18),
-              if (backtestId != null)
-                SizedBox(
-                  width: double.infinity,
-                  height: 44,
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF059669),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                    icon: const Icon(PhosphorIcons.listBulletsBold, size: 18),
-                    label: const Text("LIHAT LOG TRANSAKSI", style: TextStyle(fontWeight: FontWeight.bold)),
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      _showTradeLogSheet(
-                        context,
-                        int.parse(backtestId.toString()),
+                const SizedBox(height: 8),
+                if (finalMetrics.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(8),
+                    child: Text("Data verifikasi final belum tersedia.", style: TextStyle(color: Color(0xFF64748B), fontSize: 12)),
+                  )
+                else
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: finalMetrics.length,
+                    separatorBuilder: (_, __) => const Divider(color: Color(0xFFE2E8F0), height: 12),
+                    itemBuilder: (ctx, i) {
+                      final key = finalMetrics[i].key.replaceFirst('bt_', '');
+                      final value = finalMetrics[i].value.toString();
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(key, style: const TextStyle(color: Color(0xFF64748B), fontSize: 12)),
+                          Text(value, style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF059669), fontSize: 12)),
+                        ],
                       );
                     },
                   ),
-                ),
-            ],
+                if (backtestId != null) ...[
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 40,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF059669),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      icon: const Icon(PhosphorIcons.listBulletsBold, size: 16),
+                      label: const Text("LOG VERIFIKASI FINAL (LIVE)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        _showTradeLogSheet(
+                          context,
+                          int.parse(backtestId.toString()),
+                          title: "Log Verifikasi Final (30 Hari Live)",
+                        );
+                      },
+                    ),
+                  ),
+                ],
+
+                // --- SEKSI 2: UJIAN BADAI (CRISIS TEST) ---
+                if (stormBacktestId != null || stormMetrics.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFFBEB),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(PhosphorIcons.warningCircleBold, color: Color(0xFFD97706), size: 16),
+                        SizedBox(width: 6),
+                        Text(
+                          "UJIAN BADAI (CRISIS TEST)",
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFFD97706)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  if (stormMetrics.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(8),
+                      child: Text("Data ujian badai belum tersedia.", style: TextStyle(color: Color(0xFF64748B), fontSize: 12)),
+                    )
+                  else
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: stormMetrics.length,
+                      separatorBuilder: (_, __) => const Divider(color: Color(0xFFE2E8F0), height: 12),
+                      itemBuilder: (ctx, i) {
+                        final key = stormMetrics[i].key.replaceFirst('bt_storm_', '');
+                        final value = stormMetrics[i].value.toString();
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(key, style: const TextStyle(color: Color(0xFF64748B), fontSize: 12)),
+                            Text(value, style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFFD97706), fontSize: 12)),
+                          ],
+                        );
+                      },
+                    ),
+                  if (stormBacktestId != null) ...[
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 40,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFD97706),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        icon: const Icon(PhosphorIcons.listBulletsBold, size: 16),
+                        label: const Text("LOG UJIAN BADAI (CRISIS TEST)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          _showTradeLogSheet(
+                            context,
+                            int.parse(stormBacktestId.toString()),
+                            title: "Log Ujian Badai (Crisis Test)",
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ],
+              ],
+            ),
           ),
         ),
         actions: [
@@ -770,7 +860,7 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
   }
 
   // BOTTOM SHEET: LOG TRANSAKSI BACKTEST (LIGHT THEME)
-  void _showTradeLogSheet(BuildContext context, int backtestId) {
+  void _showTradeLogSheet(BuildContext context, int backtestId, {String title = "Log Transaksi Backtest"}) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -793,10 +883,10 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        "Log Transaksi Backtest",
-                        style: TextStyle(
-                          fontSize: 18,
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 17,
                           fontWeight: FontWeight.w800,
                           color: Color(0xFF0F172A),
                         ),
@@ -834,7 +924,7 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
                         separatorBuilder: (_, __) => const Divider(color: Color(0xFFF1F5F9), height: 12),
                         itemBuilder: (ctx, i) {
                           final t = trades[i];
-                          final isSell = t['action'] == 'SELL';
+                          final isSell = (t['action'] ?? '').toString().startsWith('SELL');
                           final num profitVal = (t['profit_loss'] ?? t['profit'] ?? 0) as num;
                           final isProfit = profitVal > 0;
                           final num returnVal = (t['return_pct'] ?? t['return_percent'] ?? 0) as num;
