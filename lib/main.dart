@@ -2,7 +2,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mytrading/login_screen.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import 'dashboard_screen.dart';
@@ -11,12 +10,20 @@ import 'control_screen.dart';  // Akan dibuat di Part 2
 import 'history_screen.dart'; // Import halaman baru
 import 'copilot_screen.dart'; // Import Trader Copilot Chat
 import 'push_notification_service.dart';
+import 'firebase_options.dart';
+import 'mac_pin_screen.dart';
 
 final GlobalKey<ScaffoldMessengerState> rootScaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(); // Konek ke Firebase
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    debugPrint("Firebase init error: $e");
+  }
   runApp(const ProviderScope(child: MyApp()));
 }
 
@@ -87,7 +94,7 @@ class MyApp extends StatelessWidget {
           displayColor: const Color(0xFF0F172A),
         ),
       ),
-      home: const LoginScreen(),
+      home: const MacPinGate(),
     );
   }
 }

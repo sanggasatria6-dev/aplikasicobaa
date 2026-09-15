@@ -1,4 +1,5 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'api_service.dart';
@@ -33,11 +34,15 @@ class PushNotificationService {
           settings.authorizationStatus == AuthorizationStatus.provisional) {
         
         // 2. Get FCM Token
-        String? token = await _fcm.getToken();
-        if (token != null) {
-          debugPrint("FCM Device Token: $token");
-          // Send token to backend
-          await _registerTokenWithBackend(ref, token);
+        try {
+          String? token = await _fcm.getToken();
+          if (token != null) {
+            debugPrint("FCM Device Token: $token");
+            // Send token to backend
+            await _registerTokenWithBackend(ref, token);
+          }
+        } catch (e) {
+          debugPrint("FCM getToken error: $e");
         }
 
         // Listen for token refresh
@@ -46,7 +51,9 @@ class PushNotificationService {
         });
 
         // 3. Set background handler
-        FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+        if (!kIsWeb) {
+          FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+        }
 
         // 4. Foreground Message Listener (Saat aplikasi sedang dibuka)
         FirebaseMessaging.onMessage.listen((RemoteMessage message) {
