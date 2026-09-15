@@ -130,6 +130,9 @@ class ApiService {
   
   Future<void> triggerUpdate() async => await _dio.post('/api/data/update');
   Future<void> triggerTraining() async => await _dio.post('/api/training/run', data: {"force_retrain": true});
+  Future<void> triggerAutoTrainUntilBetter({int maxIterations = 30}) async =>
+      await _dio.post('/api/training/run-until-better', data: {"max_iterations": maxIterations});
+  Future<void> stopTraining() async => await _dio.post('/api/training/stop');
   
   // BARU: Ambil Log Training Lama
   Future<List<dynamic>> getTrainingLogs() async {

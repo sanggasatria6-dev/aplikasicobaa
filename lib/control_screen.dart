@@ -177,13 +177,36 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            "STATUS: $step",
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF1D4ED8),
-                              fontSize: 13,
-                            ),
+                          Row(
+                            children: [
+                              Text(
+                                "STATUS: $step",
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF1D4ED8),
+                                  fontSize: 13,
+                                ),
+                              ),
+                              if (_status['mode'] == 'until_better') ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFEF3C7),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(color: const Color(0xFFFCD34D)),
+                                  ),
+                                  child: Text(
+                                    "Iterasi ${_status['iteration'] ?? 1}/${_status['max_iterations'] ?? 30}",
+                                    style: const TextStyle(
+                                      color: Color(0xFF92400E),
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                           if (_status['queue_length'] != null && (_status['queue_length'] as int) > 0)
                             Container(
@@ -206,6 +229,29 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
                     ),
                   ],
                 ),
+                if (_status['benchmark'] != null && _status['mode'] == 'until_better') ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.8),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFBFDBFE)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(PhosphorIcons.trophyBold, size: 14, color: Color(0xFFD97706)),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            "Target Juara: WR >= ${(_status['benchmark']['win_rate_pct'] as num?)?.toStringAsFixed(1) ?? '70'}% | Return >= ${(_status['benchmark']['return_pct'] as num?)?.toStringAsFixed(2) ?? '7.0'}% (${(_status['benchmark']['stocks'] as List?)?.length ?? 9} Saham)",
+                            style: const TextStyle(fontSize: 11, color: Color(0xFF1E3A8A), fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(4),
@@ -220,6 +266,65 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
                 Text(
                   "$message (${(progress * 100).toInt()}%)",
                   style: const TextStyle(fontSize: 12, color: Color(0xFF1E40AF), fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  height: 36,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFFDC2626),
+                      side: const BorderSide(color: Color(0xFFFCA5A5)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      backgroundColor: Colors.white,
+                    ),
+                    icon: const Icon(PhosphorIcons.stopCircleBold, size: 16),
+                    label: const Text("HENTIKAN PROSES", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    onPressed: () async {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          backgroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          title: const Text("Hentikan Proses Training?", style: TextStyle(fontWeight: FontWeight.bold)),
+                          content: const Text("Proses training yang sedang berlangsung akan dihentikan secara aman. Model Juara aktif saat ini tetap terjaga."),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("BATAL")),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFDC2626),
+                                foregroundColor: Colors.white,
+                              ),
+                              onPressed: () => Navigator.pop(ctx, true),
+                              child: const Text("HENTIKAN"),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirm == true) {
+                        try {
+                          await ref.read(apiProvider).stopTraining();
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("⏹️ Permintaan stop training berhasil dikirim."),
+                                backgroundColor: Color(0xFFDC2626),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text("❌ Gagal mengirim stop: $e"),
+                                backgroundColor: const Color(0xFFDC2626),
+                              ),
+                            );
+                          }
+                        }
+                      }
+                    },
+                  ),
                 ),
               ],
             ),
@@ -298,8 +403,17 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
                 ),
                 _buildActionCard(
                   context,
-                  "Full Retraining AI",
-                  "Latih ulang model LightGBM & Policy Autonomous",
+                  "Auto-Train Sampai Juara",
+                  "Loop AI otomatis mencari model melampaui Juara aktif (Auto-Discard Inferior)",
+                  PhosphorIcons.trophyBold,
+                  const Color(0xFFD97706),
+                  const Color(0xFFFFFBEB),
+                  () => _confirmAutoTrainUntilBetter(context),
+                ),
+                _buildActionCard(
+                  context,
+                  "Full Retraining AI (1x)",
+                  "Latih ulang 1x model LightGBM & Policy Autonomous",
                   PhosphorIcons.brainBold,
                   const Color(0xFF7C3AED),
                   const Color(0xFFF5F3FF),
@@ -480,16 +594,24 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
                         if (winRateStr != "-")
                           Padding(
                             padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-                            child: Row(
+                            child: Wrap(
+                              spacing: 8,
+                              runSpacing: 6,
                               children: [
                                 _buildMetricChip("Win Rate", winRateStr, const Color(0xFF2563EB), const Color(0xFFEFF6FF)),
-                                const SizedBox(width: 8),
                                 _buildMetricChip(
                                   "Return",
                                   profitStr,
                                   profitStr.contains("-") ? const Color(0xFFDC2626) : const Color(0xFF059669),
                                   profitStr.contains("-") ? const Color(0xFFFEE2E2) : const Color(0xFFD1FAE5),
                                 ),
+                                if (fullMetrics['stocks'] != null && (fullMetrics['stocks'] as List).isNotEmpty)
+                                  _buildMetricChip(
+                                    "Saham",
+                                    "${(fullMetrics['stocks'] as List).length} Saham",
+                                    const Color(0xFF7C3AED),
+                                    const Color(0xFFF5F3FF),
+                                  ),
                               ],
                             ),
                           ),
@@ -537,79 +659,191 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
     );
   }
 
-  // --- TAB 2: CONFIG SAHAM ---
+  // --- TAB 2: CONFIG SAHAM (MAKSIMAL 15 SAHAM) ---
   Widget _buildStockConfig(BuildContext context, WidgetRef ref) {
     return ref.watch(configProvider).when(
       data: (data) {
         final stocks = (data['stocks'] as List?) ?? [];
+        final isMax = stocks.length >= 15;
         return Scaffold(
           backgroundColor: const Color(0xFFF8FAFC),
           floatingActionButton: FloatingActionButton.extended(
-            backgroundColor: const Color(0xFF059669),
+            backgroundColor: isMax ? const Color(0xFF94A3B8) : const Color(0xFF059669),
             foregroundColor: Colors.white,
-            icon: const Icon(PhosphorIcons.plusBold, size: 18),
-            label: const Text("TAMBAH SAHAM", style: TextStyle(fontWeight: FontWeight.bold)),
-            onPressed: () => _addStockDialog(context, ref),
+            icon: Icon(isMax ? PhosphorIcons.prohibitBold : PhosphorIcons.plusBold, size: 18),
+            label: Text(
+              isMax ? "KUOTA PENUH (15/15)" : "TAMBAH SAHAM (${stocks.length}/15)",
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            onPressed: () => _addStockDialog(context, ref, currentCount: stocks.length),
           ),
-          body: stocks.isEmpty
-              ? const Center(
-                  child: Text("Belum ada watchlist saham.", style: TextStyle(color: Color(0xFF64748B))),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: stocks.length,
-                  itemBuilder: (ctx, i) {
-                    final ticker = stocks[i].toString();
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.02),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
+          body: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              // Header Kuota & Sinkronisasi Live Market Intelligence
+              Container(
+                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.02),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(PhosphorIcons.chartBarBold, color: Color(0xFF059669), size: 18),
+                            SizedBox(width: 8),
+                            Text(
+                              "WATCHLIST SAHAM",
+                              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF0F172A), letterSpacing: 0.5),
+                            ),
+                          ],
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: isMax ? const Color(0xFFFEE2E2) : const Color(0xFFD1FAE5),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: isMax ? const Color(0xFFFCA5A5) : const Color(0xFFA7F3D0)),
                           ),
-                        ],
+                          child: Text(
+                            "${stocks.length}/15 SAHAM",
+                            style: TextStyle(
+                              color: isMax ? const Color(0xFFDC2626) : const Color(0xFF059669),
+                              fontWeight: FontWeight.w800,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: (stocks.length / 15.0).clamp(0.0, 1.0),
+                        minHeight: 6,
+                        color: isMax ? const Color(0xFFDC2626) : const Color(0xFF059669),
+                        backgroundColor: const Color(0xFFE2E8F0),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFD1FAE5),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Icon(PhosphorIcons.chartLineUpBold, color: Color(0xFF059669), size: 18),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      isMax
+                          ? "⚠️ Kuota maksimal 15 saham terpenuhi. Hapus salah satu saham jika ingin menambahkan saham baru."
+                          : "Sistem memantau maksimal 15 saham secara live. Menambah/menghapus saham otomatis tersinkronisasi ke Market Intelligence & Auto-Backfill 5 Tahun.",
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isMax ? const Color(0xFFDC2626) : const Color(0xFF64748B),
+                        fontWeight: isMax ? FontWeight.w600 : FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              if (stocks.isEmpty)
+                Container(
+                  padding: const EdgeInsets.all(32),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      "Belum ada saham yang dipantau.\nTap tombol di bawah untuk menambahkan saham.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Color(0xFF64748B), height: 1.5),
+                    ),
+                  ),
+                )
+              else
+                ...stocks.map((s) {
+                  final ticker = s.toString();
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.02),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFD1FAE5),
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                              const SizedBox(width: 12),
-                              Text(
-                                ticker,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 16,
-                                  color: Color(0xFF0F172A),
-                                ),
+                              child: const Icon(PhosphorIcons.chartLineUpBold, color: Color(0xFF059669), size: 18),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              ticker,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 16,
+                                color: Color(0xFF0F172A),
                               ),
-                            ],
-                          ),
-                          IconButton(
-                            icon: const Icon(PhosphorIcons.trashBold, color: Color(0xFFDC2626), size: 20),
-                            tooltip: "Hapus dari Watchlist",
-                            onPressed: () async {
+                            ),
+                          ],
+                        ),
+                        IconButton(
+                          icon: const Icon(PhosphorIcons.trashBold, color: Color(0xFFDC2626), size: 20),
+                          tooltip: "Hapus dari Watchlist",
+                          onPressed: () async {
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                backgroundColor: Colors.white,
+                                title: Text("Hapus $ticker?"),
+                                content: Text("Saham $ticker akan dihapus dari watchlist pemantauan dan disinkronisasi ke server live."),
+                                actions: [
+                                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("BATAL")),
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFFDC2626),
+                                      foregroundColor: Colors.white,
+                                    ),
+                                    onPressed: () => Navigator.pop(ctx, true),
+                                    child: const Text("HAPUS"),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (confirm == true) {
                               try {
                                 await ref.read(apiProvider).removeStockConfig(ticker);
                                 ref.invalidate(configProvider);
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text("🗑️ Saham $ticker dihapus dari watchlist."),
+                                      content: Text("🗑️ Saham $ticker dihapus dari watchlist & disinkronisasi."),
                                       backgroundColor: const Color(0xFF0F172A),
                                     ),
                                   );
@@ -624,13 +858,16 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
                                   );
                                 }
                               }
-                            },
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              const SizedBox(height: 70),
+            ],
+          ),
         );
       },
       loading: () => const Center(
@@ -701,6 +938,69 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
                             "Adaptive Storm Training: Model diperkuat pinalti bobot 4x-5x (${clData['hard_negatives_boosted'] ?? 0} pola koreksi risiko badai).",
                             style: const TextStyle(fontSize: 11, color: Color(0xFF5B21B6), fontWeight: FontWeight.w600),
                           ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                // --- SEKSI UNIVERSE SAHAM MODEL ---
+                if (metrics['stocks'] != null && (metrics['stocks'] as List).isNotEmpty) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(PhosphorIcons.crosshairBold, size: 15, color: Color(0xFF475569)),
+                                SizedBox(width: 6),
+                                Text(
+                                  "UNIVERSE SAHAM MODEL",
+                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF334155)),
+                                ),
+                              ],
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEDE9FE),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                "${(metrics['stocks'] as List).length} Saham",
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF7C3AED)),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: (metrics['stocks'] as List).map((s) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: const Color(0xFFCBD5E1)),
+                              ),
+                              child: Text(
+                                s.toString(),
+                                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: Color(0xFF0F172A)),
+                              ),
+                            );
+                          }).toList(),
                         ),
                       ],
                     ),
@@ -1260,7 +1560,138 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
     );
   }
 
-  void _addStockDialog(BuildContext context, WidgetRef ref) {
+  Future<void> _confirmAutoTrainUntilBetter(BuildContext context) async {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF3C7),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(PhosphorIcons.trophyBold, color: Color(0xFFD97706), size: 22),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text(
+                "Auto-Train Sampai Juara",
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: Color(0xFF0F172A)),
+              ),
+            ),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Sistem akan melatih model secara berulang (hingga 30 iterasi) dengan pengujian badai & live walk-forward:",
+              style: TextStyle(fontSize: 13, color: Color(0xFF334155), height: 1.4),
+            ),
+            SizedBox(height: 10),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(PhosphorIcons.checkCircleBold, color: Color(0xFF059669), size: 16),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    "Hanya model yang melampaui Juara aktif (Win Rate >= 71.4% / Return lebih tinggi) yang disimpan & diaktifkan.",
+                    style: TextStyle(fontSize: 12, color: Color(0xFF475569)),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 6),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(PhosphorIcons.trashBold, color: Color(0xFFDC2626), size: 16),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    "Model yang performanya di bawah Juara otomatis dibuang dan dihapus dari server.",
+                    style: TextStyle(fontSize: 12, color: Color(0xFF475569)),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 6),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(PhosphorIcons.shieldCheckBold, color: Color(0xFF2563EB), size: 16),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    "Model Juara aktif tetap aman dan proses dapat dihentikan kapan saja via tombol di layar.",
+                    style: TextStyle(fontSize: 12, color: Color(0xFF475569)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("BATAL", style: TextStyle(color: Color(0xFF64748B))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFD97706),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              try {
+                await ref.read(apiProvider).triggerAutoTrainUntilBetter(maxIterations: 30);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("🚀 Auto-Train Sampai Juara dimulai! AI mencari model terbaik..."),
+                      backgroundColor: Color(0xFFD97706),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("❌ Gagal memulai auto-train: ${e.toString().replaceAll('Exception:', '').trim()}"),
+                      backgroundColor: const Color(0xFFDC2626),
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text("MULAI AUTO-TRAIN", style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _addStockDialog(BuildContext context, WidgetRef ref, {int currentCount = 0}) {
+    if (currentCount >= 15) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("⚠️ Batas kuota maksimal 15 saham telah tercapai! Hapus salah satu saham untuk menambah baru."),
+          backgroundColor: Color(0xFFDC2626),
+          duration: Duration(seconds: 4),
+        ),
+      );
+      return;
+    }
+
     final symbolCtrl = TextEditingController();
     final authState = ref.read(authProvider);
     final username = authState.username ?? "user_default";
@@ -1361,7 +1792,7 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text("✅ Saham $sym berhasil ditambahkan ke watchlist!"),
+                          content: Text("✅ Saham $sym berhasil ditambahkan & disinkronisasi ke Live Intelligence!"),
                           backgroundColor: const Color(0xFF059669),
                         ),
                       );
