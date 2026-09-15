@@ -46,19 +46,42 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
   }
 
   void _startPolling() {
-    _timer = Timer.periodic(const Duration(seconds: 2), (timer) async {
-      if (!mounted) return;
-      try {
-        final newStatus = await ref.read(apiProvider).getSystemStatus();
-        setState(() => _status = newStatus);
+    _timer?.cancel();
+    _pollSystemStatus();
+  }
 
-        if (_status['is_running'] == true && newStatus['is_running'] == false) {
-          ref.invalidate(logsProvider);
-        }
-      } catch (e) {
-        debugPrint("Polling error: $e");
+  Future<void> _pollSystemStatus() async {
+    if (!mounted) return;
+    try {
+      final newStatus = await ref.read(apiProvider).getSystemStatus();
+      if (!mounted) return;
+
+      final wasRunning = _status['is_running'] == true;
+      final isRunningNow = newStatus['is_running'] == true;
+
+      if (wasRunning && !isRunningNow) {
+        ref.invalidate(logsProvider);
+        ref.invalidate(configProvider);
       }
-    });
+
+      // Hanya panggil setState jika data status benar-benar berubah
+      final hasChanged = _status['is_running'] != newStatus['is_running'] ||
+          _status['step'] != newStatus['step'] ||
+          _status['progress'] != newStatus['progress'] ||
+          _status['message'] != newStatus['message'] ||
+          _status['iteration'] != newStatus['iteration'] ||
+          _status['mode'] != newStatus['mode'];
+
+      if (hasChanged) {
+        setState(() => _status = newStatus);
+      }
+    } catch (e) {
+      debugPrint("Polling error: $e");
+    }
+
+    if (!mounted) return;
+    final nextInterval = (_status['is_running'] == true) ? 2 : 5;
+    _timer = Timer(Duration(seconds: nextInterval), _pollSystemStatus);
   }
 
   @override
@@ -1696,11 +1719,13 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
     final authState = ref.read(authProvider);
     final username = authState.username ?? "user_default";
     int? selectedSector;
+    final sectorStream = SectorService().getUserSectors(username);
+    bool isSaving = false;
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setState) {
+        builder: (context, setDialogState) {
           return AlertDialog(
             backgroundColor: Colors.white,
             surfaceTintColor: Colors.white,
@@ -1715,7 +1740,7 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
                 IconButton(
                   icon: const Icon(PhosphorIcons.gearBold, size: 18, color: Color(0xFF64748B)),
                   tooltip: "Atur Sektor",
-                  onPressed: () => _showSectorManager(context, username),
+                  onPressed: isSaving ? null : () => _showSectorManager(context, username),
                 ),
               ],
             ),
@@ -1724,23 +1749,32 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
               children: [
                 TextField(
                   controller: symbolCtrl,
-                  decoration: const InputDecoration(labelText: "Kode Saham (cth: BBCA)", hintText: "BBCA"),
+                  autofocus: true,
+                  enabled: !isSaving,
+                  decoration: const InputDecoration(
+                    labelText: "Kode Saham (cth: BBCA)",
+                    hintText: "BBCA",
+                  ),
                   textCapitalization: TextCapitalization.characters,
                 ),
                 const SizedBox(height: 16),
                 StreamBuilder<List<Map<String, dynamic>>>(
-                  stream: SectorService().getUserSectors(username),
+                  stream: sectorStream,
                   builder: (context, snapshot) {
-                    if (!snapshot.hasData) return const LinearProgressIndicator(color: Color(0xFF059669));
-                    final sectors = snapshot.data!;
+                    const defaultSectors = [
+                      {"id": 0, "name": "Finance (Perbankan)"},
+                      {"id": 1, "name": "Energy (Minyak, Gas, Coal)"},
+                      {"id": 2, "name": "Mining (Emas, Nikel, Mineral)"},
+                      {"id": 3, "name": "Consumer & Retail"},
+                      {"id": 4, "name": "Infra, Telco & Others"},
+                    ];
 
-                    if (sectors.isEmpty) {
-                      SectorService().initDefaultSectors(username);
-                      return const Text("Inisialisasi data sektor...", style: TextStyle(color: Color(0xFF64748B)));
-                    }
+                    final sectors = (snapshot.hasData && snapshot.data!.isNotEmpty)
+                        ? snapshot.data!
+                        : defaultSectors;
 
                     if (selectedSector == null || !sectors.any((s) => s['id'] == selectedSector)) {
-                      selectedSector = sectors.first['id'];
+                      selectedSector = sectors.first['id'] as int;
                     }
 
                     return DropdownButtonFormField<int>(
@@ -1749,11 +1783,11 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
                       decoration: const InputDecoration(labelText: "Sektor"),
                       items: sectors.map((s) {
                         return DropdownMenuItem<int>(
-                          value: s['id'],
+                          value: s['id'] as int,
                           child: Text("${s['id']} - ${s['name']}"),
                         );
                       }).toList(),
-                      onChanged: (v) => setState(() => selectedSector = v),
+                      onChanged: isSaving ? null : (v) => setDialogState(() => selectedSector = v),
                     );
                   },
                 ),
@@ -1761,7 +1795,7 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(ctx),
+                onPressed: isSaving ? null : () => Navigator.pop(ctx),
                 child: const Text("BATAL", style: TextStyle(color: Color(0xFF64748B))),
               ),
               ElevatedButton(
@@ -1771,44 +1805,56 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
                   elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
-                onPressed: () async {
-                  final sym = symbolCtrl.text.trim().toUpperCase();
-                  if (sym.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Kode saham tidak boleh kosong!"), backgroundColor: Color(0xFFDC2626)),
-                    );
-                    return;
-                  }
-                  if (selectedSector == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Pilih sektor saham terlebih dahulu!"), backgroundColor: Color(0xFFDC2626)),
-                    );
-                    return;
-                  }
-                  Navigator.pop(ctx);
-                  try {
-                    await ref.read(apiProvider).addStockConfig(sym, selectedSector!);
-                    ref.invalidate(configProvider);
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text("✅ Saham $sym berhasil ditambahkan & disinkronisasi ke Live Intelligence!"),
-                          backgroundColor: const Color(0xFF059669),
-                        ),
-                      );
-                    }
-                  } catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text("❌ Gagal tambah saham: ${e.toString().replaceAll('Exception:', '').trim()}"),
-                          backgroundColor: const Color(0xFFDC2626),
-                        ),
-                      );
-                    }
-                  }
-                },
-                child: const Text("SIMPAN", style: TextStyle(fontWeight: FontWeight.bold)),
+                onPressed: isSaving
+                    ? null
+                    : () async {
+                        final sym = symbolCtrl.text.trim().toUpperCase();
+                        if (sym.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Kode saham tidak boleh kosong!"), backgroundColor: Color(0xFFDC2626)),
+                          );
+                          return;
+                        }
+                        if (selectedSector == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Pilih sektor saham terlebih dahulu!"), backgroundColor: Color(0xFFDC2626)),
+                          );
+                          return;
+                        }
+                        setDialogState(() => isSaving = true);
+                        try {
+                          await ref.read(apiProvider).addStockConfig(sym, selectedSector!);
+                          ref.invalidate(configProvider);
+                          if (ctx.mounted) {
+                            Navigator.pop(ctx);
+                          }
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text("✅ Saham $sym berhasil ditambahkan ke watchlist!"),
+                                backgroundColor: const Color(0xFF059669),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          setDialogState(() => isSaving = false);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text("❌ Gagal tambah saham: ${e.toString().replaceAll('Exception:', '').trim()}"),
+                                backgroundColor: const Color(0xFFDC2626),
+                              ),
+                            );
+                          }
+                        }
+                      },
+                child: isSaving
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Text("SIMPAN", style: TextStyle(fontWeight: FontWeight.bold)),
               ),
             ],
           );
