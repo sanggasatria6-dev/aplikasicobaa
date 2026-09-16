@@ -74,6 +74,26 @@ class _CopilotScreenState extends ConsumerState<CopilotScreen> {
     });
   }
 
+  /// Mengambil tepat maksimal 3 konteks percakapan terakhir (FIFO sliding window)
+  List<Map<String, dynamic>> _getLastThreeContexts() {
+    // Ambil pesan sebelum query saat ini, kecualikan pesan pembuka dan error
+    final historyPool = _messages.take(_messages.length - 1).where((m) =>
+      !m.text.startsWith("Halo kak Sangga! 👋") &&
+      !m.text.startsWith("⚠️ Terjadi kesalahan:")
+    ).toList();
+
+    // Maksimal 6 pesan (3 putaran tanya-jawab lengkap)
+    final recent = historyPool.length > 6
+        ? historyPool.sublist(historyPool.length - 6)
+        : historyPool;
+
+    return recent.map((m) => {
+      "text": m.text,
+      "isUser": m.isUser,
+      "role": m.isUser ? "user" : "assistant",
+    }).toList();
+  }
+
   Future<void> _sendMessage(String text) async {
     final query = text.trim();
     if (query.isEmpty || _isLoading) return;
@@ -91,7 +111,8 @@ class _CopilotScreenState extends ConsumerState<CopilotScreen> {
 
     try {
       final api = ref.read(apiProvider);
-      final reply = await api.sendCopilotMessage(query);
+      final historyPayload = _getLastThreeContexts();
+      final reply = await api.sendCopilotMessage(query, history: historyPayload);
 
       if (mounted) {
         setState(() {

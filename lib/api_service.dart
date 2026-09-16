@@ -268,7 +268,7 @@ class ApiService {
   }
 
   // --- 🤖 COPILOT AI CHAT ---
-  Future<String> sendCopilotMessage(String message, {List<Map<String, String>>? history}) async {
+  Future<String> sendCopilotMessage(String message, {List<Map<String, dynamic>>? history}) async {
     try {
       final res = await _dio.post(
         '/api/copilot/chat',
