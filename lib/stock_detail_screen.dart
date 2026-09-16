@@ -3,10 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'api_service.dart';
-import 'sector_service.dart';
 
 // Provider detail saham dengan parameter symbol & timeframe
 final stockDetailProvider = FutureProvider.family.autoDispose<Map<String, dynamic>, ({String symbol, String timeframe})>(
@@ -623,7 +622,7 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
             children: [
               Row(
                 children: [
-                  const Icon(PhosphorIcons.radarBold, size: 18, color: Color(0xFF38BDF8)),
+                  const Icon(PhosphorIcons.broadcastBold, size: 18, color: Color(0xFF38BDF8)),
                   const SizedBox(width: 8),
                   Text(
                     "Bandarmologi & Big Flow",
@@ -1040,7 +1039,7 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
         children: [
           Row(
             children: [
-              const Icon(PhosphorIcons.chartPolarBold, size: 18, color: Color(0xFF10B981)),
+              const Icon(PhosphorIcons.chartPieSliceBold, size: 18, color: Color(0xFF10B981)),
               const SizedBox(width: 8),
               Text(
                 "Ringkasan Statistik Pasar",
