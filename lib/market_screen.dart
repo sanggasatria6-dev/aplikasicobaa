@@ -43,10 +43,10 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
     final fmt = NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A), // Modern Gen-Z Dark Fintech Slate
+      backgroundColor: const Color(0xFFF8FAFC), // Tema Terang Bersih & Modern
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F172A),
-        elevation: 0,
+        backgroundColor: Colors.white,
+        elevation: 0.5,
         title: Row(
           children: [
             Text(
@@ -54,23 +54,23 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
               style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.w900,
                 fontSize: 20,
-                color: Colors.white,
+                color: const Color(0xFF0F172A),
               ),
             ),
             const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: const Color(0xFF10B981).withOpacity(0.15),
+                color: const Color(0xFFD1FAE5),
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: const Color(0xFF10B981).withOpacity(0.5)),
+                border: Border.all(color: const Color(0xFF059669).withOpacity(0.3)),
               ),
               child: Text(
                 "LIVE AI",
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 10,
                   fontWeight: FontWeight.w800,
-                  color: const Color(0xFF34D399),
+                  color: const Color(0xFF059669),
                 ),
               ),
             ),
@@ -89,7 +89,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                 icon: Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    const Icon(PhosphorIcons.bellBold, color: Colors.white),
+                    const Icon(PhosphorIcons.bellBold, color: Color(0xFF0F172A)),
                     if (unread > 0)
                       Positioned(
                         right: -2,
@@ -97,7 +97,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(3),
                           decoration: const BoxDecoration(
-                            color: Color(0xFFEF4444),
+                            color: Color(0xFFDC2626),
                             shape: BoxShape.circle,
                           ),
                           constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
@@ -125,7 +125,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
             },
           ),
           IconButton(
-            icon: const Icon(PhosphorIcons.scanBold, color: Color(0xFF34D399)),
+            icon: const Icon(PhosphorIcons.scanBold, color: Color(0xFF059669)),
             tooltip: "Scan Market AI Sekarang",
             onPressed: () async {
               HapticFeedback.mediumImpact();
@@ -135,14 +135,14 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                     "AI sedang menganalisa seluruh pasar & flow transaksi...",
                     style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
                   ),
-                  backgroundColor: const Color(0xFF1E293B),
+                  backgroundColor: const Color(0xFF0F172A),
                 ),
               );
               await ref.read(apiProvider).triggerMarketScan();
             },
           ),
           IconButton(
-            icon: const Icon(PhosphorIcons.arrowsClockwiseBold, color: Colors.white70),
+            icon: const Icon(PhosphorIcons.arrowsClockwiseBold, color: Color(0xFF0F172A)),
             tooltip: "Refresh Data",
             onPressed: () {
               HapticFeedback.lightImpact();
@@ -154,7 +154,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
       ),
       body: Column(
         children: [
-          // QUICK SEARCH & SECTOR PILL FILTERS
+          // SEARCH BAR & SECTOR PILL FILTERS (LIGHT THEME)
           _buildSearchAndFilters(),
 
           // LIST DATA SAHAM
@@ -165,11 +165,11 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const CircularProgressIndicator(color: Color(0xFF10B981)),
+                    const CircularProgressIndicator(color: Color(0xFF059669)),
                     const SizedBox(height: 16),
                     Text(
                       "Mengambil rekomendasi & analisa AI...",
-                      style: GoogleFonts.plusJakartaSans(color: const Color(0xFF94A3B8), fontSize: 13),
+                      style: GoogleFonts.plusJakartaSans(color: const Color(0xFF64748B), fontSize: 13),
                     ),
                   ],
                 ),
@@ -180,33 +180,36 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1E293B),
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFFEF4444).withOpacity(0.4)),
+                      border: Border.all(color: const Color(0xFFFECACA)),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 2)),
+                      ],
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(PhosphorIcons.warningOctagonBold, size: 40, color: Color(0xFFEF4444)),
+                        const Icon(PhosphorIcons.warningOctagonBold, size: 40, color: Color(0xFFDC2626)),
                         const SizedBox(height: 10),
                         Text(
                           "Gagal Memuat Analisa Pasar",
                           style: GoogleFonts.plusJakartaSans(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
-                            color: Colors.white,
+                            color: const Color(0xFF0F172A),
                           ),
                         ),
                         const SizedBox(height: 6),
                         Text(
                           "$e",
                           textAlign: TextAlign.center,
-                          style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF94A3B8)),
+                          style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF64748B)),
                         ),
                         const SizedBox(height: 16),
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF10B981),
+                            backgroundColor: const Color(0xFF059669),
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
@@ -226,12 +229,13 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
     );
   }
 
-  // --- SEARCH & FILTER BAR ---
+  // --- SEARCH & FILTER BAR (LIGHT THEME) ---
   Widget _buildSearchAndFilters() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       decoration: const BoxDecoration(
-        color: Color(0xFF0F172A),
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0))),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -240,18 +244,18 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
           Container(
             height: 42,
             decoration: BoxDecoration(
-              color: const Color(0xFF1E293B),
+              color: const Color(0xFFF8FAFC),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF334155)),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
             ),
             child: TextField(
               controller: _searchCtrl,
               onChanged: (val) => setState(() => _searchQuery = val.trim().toUpperCase()),
-              style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+              style: GoogleFonts.plusJakartaSans(color: const Color(0xFF0F172A), fontSize: 13, fontWeight: FontWeight.w600),
               decoration: InputDecoration(
-                hintText: "Cari Saham (Contoh: BBRI, ANTM, ...)",
-                hintStyle: GoogleFonts.plusJakartaSans(color: const Color(0xFF64748B), fontSize: 13),
-                prefixIcon: const Icon(PhosphorIcons.magnifyingGlassBold, size: 16, color: Color(0xFF94A3B8)),
+                hintText: "Cari saham (Contoh: BBRI, ANTM, ...)",
+                hintStyle: GoogleFonts.plusJakartaSans(color: const Color(0xFF94A3B8), fontSize: 13),
+                prefixIcon: const Icon(PhosphorIcons.magnifyingGlassBold, size: 16, color: Color(0xFF64748B)),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
                         icon: const Icon(PhosphorIcons.xCircleFill, size: 16, color: Color(0xFF94A3B8)),
@@ -285,10 +289,10 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                       duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                       decoration: BoxDecoration(
-                        color: isSelected ? const Color(0xFF38BDF8) : const Color(0xFF1E293B),
+                        color: isSelected ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: isSelected ? const Color(0xFF38BDF8) : const Color(0xFF334155),
+                          color: isSelected ? const Color(0xFF0F172A) : const Color(0xFFE2E8F0),
                         ),
                       ),
                       child: Text(
@@ -296,7 +300,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 11,
                           fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                          color: isSelected ? const Color(0xFF0F172A) : const Color(0xFF94A3B8),
+                          color: isSelected ? Colors.white : const Color(0xFF64748B),
                         ),
                       ),
                     ),
@@ -310,7 +314,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
     );
   }
 
-  // --- LISTVIEW BUILDER ---
+  // --- LISTVIEW BUILDER (LIGHT THEME) ---
   Widget _buildStockList(BuildContext context, List<dynamic> data, NumberFormat fmt) {
     if (data.isEmpty) {
       return Center(
@@ -319,22 +323,22 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(PhosphorIcons.chartLineBold, size: 48, color: Color(0xFF64748B)),
+              const Icon(PhosphorIcons.chartLineBold, size: 48, color: Color(0xFF94A3B8)),
               const SizedBox(height: 12),
               Text(
                 "Belum Ada Data Analisis AI",
-                style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF0F172A)),
               ),
               const SizedBox(height: 6),
               Text(
                 "Tekan tombol SCAN di kanan atas untuk menganalisis pergerakan saham hari ini.",
                 textAlign: TextAlign.center,
-                style: GoogleFonts.plusJakartaSans(color: const Color(0xFF94A3B8), fontSize: 13),
+                style: GoogleFonts.plusJakartaSans(color: const Color(0xFF64748B), fontSize: 13),
               ),
               const SizedBox(height: 20),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF10B981),
+                  backgroundColor: const Color(0xFF059669),
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -360,7 +364,6 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
 
       if (_selectedSector == "Semua") return true;
 
-      // Check sector matching
       final reason = (item['reason'] ?? '').toString().toLowerCase();
       final rec = (item['recommendation'] ?? '').toString().toLowerCase();
 
@@ -380,16 +383,16 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(PhosphorIcons.magnifyingGlassBold, size: 40, color: Color(0xFF64748B)),
+              const Icon(PhosphorIcons.magnifyingGlassBold, size: 40, color: Color(0xFF94A3B8)),
               const SizedBox(height: 12),
               Text(
                 "Tidak ada saham yang cocok",
-                style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                style: GoogleFonts.plusJakartaSans(color: const Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 15),
               ),
               const SizedBox(height: 6),
               Text(
                 "Coba gunakan kata kunci lain atau pilih tab 'Semua'.",
-                style: GoogleFonts.plusJakartaSans(color: const Color(0xFF94A3B8), fontSize: 12),
+                style: GoogleFonts.plusJakartaSans(color: const Color(0xFF64748B), fontSize: 12),
               ),
             ],
           ),
@@ -398,7 +401,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       itemCount: filtered.length,
       itemBuilder: (ctx, i) {
         final item = filtered[i];
@@ -421,22 +424,22 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
         final profitPot = (item['potential_gain_percent'] as num? ?? 0).toDouble();
 
         // Recommendation styling
-        Color badgeBg = const Color(0xFF1E293B);
-        Color badgeFg = const Color(0xFF94A3B8);
-        Color cardBorder = const Color(0xFF334155).withOpacity(0.5);
+        Color badgeBg = const Color(0xFFF1F5F9);
+        Color badgeFg = const Color(0xFF64748B);
+        Color cardBorder = const Color(0xFFE2E8F0);
 
         if (rec.contains("STRONG")) {
-          badgeBg = const Color(0xFF064E3B);
-          badgeFg = const Color(0xFF34D399);
-          cardBorder = const Color(0xFF10B981).withOpacity(0.4);
+          badgeBg = const Color(0xFFD1FAE5);
+          badgeFg = const Color(0xFF059669);
+          cardBorder = const Color(0xFF059669).withOpacity(0.5);
         } else if (rec.contains("BELI") || rec.contains("BUY")) {
-          badgeBg = const Color(0xFF0C4A6E);
-          badgeFg = const Color(0xFF38BDF8);
-          cardBorder = const Color(0xFF38BDF8).withOpacity(0.3);
+          badgeBg = const Color(0xFFE0F2FE);
+          badgeFg = const Color(0xFF0284C7);
+          cardBorder = const Color(0xFF0284C7).withOpacity(0.4);
         } else if (rec.contains("JUAL") || rec.contains("HINDARI") || rec.contains("AVOID")) {
-          badgeBg = const Color(0xFF4C0519);
-          badgeFg = const Color(0xFFFB7185);
-          cardBorder = const Color(0xFFEF4444).withOpacity(0.2);
+          badgeBg = const Color(0xFFFEE2E2);
+          badgeFg = const Color(0xFFDC2626);
+          cardBorder = const Color(0xFFDC2626).withOpacity(0.3);
         }
 
         // Regime HMM mapping: 0=Crash, 1=Sideways, 2=Bull
@@ -447,28 +450,28 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
 
         if (regime == 0) {
           regimeLabel = "⚠️ CRASH";
-          regimeBg = const Color(0xFF4C0519);
-          regimeFg = const Color(0xFFFB7185);
+          regimeBg = const Color(0xFFFEE2E2);
+          regimeFg = const Color(0xFFDC2626);
         } else if (regime == 2) {
           regimeLabel = "🚀 BULL";
-          regimeBg = const Color(0xFF064E3B);
-          regimeFg = const Color(0xFF34D399);
+          regimeBg = const Color(0xFFD1FAE5);
+          regimeFg = const Color(0xFF059669);
         } else if (regime == 1) {
           regimeLabel = "⚖️ SIDEWAYS";
-          regimeBg = const Color(0xFF451A03);
-          regimeFg = const Color(0xFFFBBF24);
+          regimeBg = const Color(0xFFFEF3C7);
+          regimeFg = const Color(0xFFD97706);
         }
 
         return Container(
-          margin: const EdgeInsets.only(bottom: 14),
+          margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
-            color: const Color(0xFF1E293B),
-            borderRadius: BorderRadius.circular(20),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
             border: Border.all(color: cardBorder, width: rec.contains("STRONG") ? 1.5 : 1),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.25),
-                blurRadius: 12,
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
             ],
@@ -486,7 +489,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                 ),
               );
             },
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(18),
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -506,8 +509,8 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                                 symbol,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontWeight: FontWeight.w900,
-                                  fontSize: 20,
-                                  color: Colors.white,
+                                  fontSize: 19,
+                                  color: const Color(0xFF0F172A),
                                   letterSpacing: 0.5,
                                 ),
                               ),
@@ -538,7 +541,6 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                         decoration: BoxDecoration(
                           color: badgeBg,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: badgeFg.withOpacity(0.3)),
                         ),
                         child: Text(
                           rec.contains("STRONG")
@@ -560,13 +562,13 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        const Icon(PhosphorIcons.lightningFill, size: 14, color: Color(0xFF34D399)),
+                        const Icon(PhosphorIcons.lightningFill, size: 14, color: Color(0xFF059669)),
                         const SizedBox(width: 4),
                         Text(
                           "Rekomendasi AI: $lotSuggestion",
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 11,
-                            color: const Color(0xFF34D399),
+                            color: const Color(0xFF059669),
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -583,16 +585,16 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF0F172A),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFF334155).withOpacity(0.5)),
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 "WIN RATE AI",
-                                style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF94A3B8)),
+                                style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF64748B)),
                               ),
                               const SizedBox(height: 2),
                               Text(
@@ -600,7 +602,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w800,
-                                  color: const Color(0xFF38BDF8),
+                                  color: const Color(0xFF0284C7),
                                 ),
                               ),
                             ],
@@ -612,16 +614,16 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF0F172A),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFF334155).withOpacity(0.5)),
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 "POTENSI GAIN",
-                                style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF94A3B8)),
+                                style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF64748B)),
                               ),
                               const SizedBox(height: 2),
                               Text(
@@ -629,7 +631,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w800,
-                                  color: profitPot > 0 ? const Color(0xFF34D399) : const Color(0xFFFB7185),
+                                  color: profitPot > 0 ? const Color(0xFF059669) : const Color(0xFFDC2626),
                                 ),
                               ),
                             ],
@@ -647,11 +649,11 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                     children: [
                       Text(
                         "Harga: ${fmt.format(price)}",
-                        style: GoogleFonts.plusJakartaSans(fontSize: 13, color: Colors.white, fontWeight: FontWeight.w700),
+                        style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF0F172A), fontWeight: FontWeight.w700),
                       ),
                       Text(
                         "Target TP: ${fmt.format(target)}",
-                        style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF34D399), fontWeight: FontWeight.w800),
+                        style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF059669), fontWeight: FontWeight.w800),
                       ),
                     ],
                   ),
@@ -667,14 +669,14 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                         children: [
                           Text(
                             "AI Conviction Score",
-                            style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF94A3B8)),
+                            style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF64748B)),
                           ),
                           Text(
                             "${winRate.toStringAsFixed(0)}%",
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 11,
                               fontWeight: FontWeight.w800,
-                              color: winRate >= 65 ? const Color(0xFF34D399) : (winRate >= 50 ? const Color(0xFF38BDF8) : const Color(0xFFFBBF24)),
+                              color: winRate >= 65 ? const Color(0xFF059669) : (winRate >= 50 ? const Color(0xFF0284C7) : const Color(0xFFD97706)),
                             ),
                           ),
                         ],
@@ -685,8 +687,8 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                         child: LinearProgressIndicator(
                           value: (winRate / 100.0).clamp(0.0, 1.0),
                           minHeight: 6,
-                          color: winRate >= 65 ? const Color(0xFF10B981) : (winRate >= 50 ? const Color(0xFF38BDF8) : const Color(0xFFF59E0B)),
-                          backgroundColor: const Color(0xFF0F172A),
+                          color: winRate >= 65 ? const Color(0xFF059669) : (winRate >= 50 ? const Color(0xFF0284C7) : const Color(0xFFD97706)),
+                          backgroundColor: const Color(0xFFF1F5F9),
                         ),
                       ),
                     ],
@@ -698,13 +700,13 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF0F172A),
+                        color: const Color(0xFFF8FAFC),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFF334155).withOpacity(0.4)),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
                       ),
                       child: Row(
                         children: [
-                          const Icon(PhosphorIcons.brainBold, size: 14, color: Color(0xFFA78BFA)),
+                          const Icon(PhosphorIcons.brainBold, size: 14, color: Color(0xFF7C3AED)),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -712,7 +714,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w500,
-                                color: const Color(0xFF94A3B8),
+                                color: const Color(0xFF475569),
                               ),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
@@ -731,14 +733,14 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                     children: [
                       Row(
                         children: [
-                          const Icon(PhosphorIcons.chartLineUpBold, size: 13, color: Color(0xFF38BDF8)),
+                          const Icon(PhosphorIcons.chartLineUpBold, size: 14, color: Color(0xFF0284C7)),
                           const SizedBox(width: 4),
                           Text(
-                            "Detail & Chart Interaktif ➔",
+                            "Detail & Live Orderbook ➔",
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
-                              color: const Color(0xFF38BDF8),
+                              color: const Color(0xFF0284C7),
                             ),
                           ),
                         ],
@@ -752,7 +754,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF10B981),
+                            color: const Color(0xFF059669),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
@@ -783,7 +785,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
     );
   }
 
-  // SMART BUY BOTTOM SHEET
+  // SMART BUY BOTTOM SHEET (LIGHT THEME)
   void _showSmartBuySheet(BuildContext context, WidgetRef ref, dynamic item) {
     ref.read(capitalProvider.future).then((capData) {
       final cash = (capData['current_capital'] as num).toDouble();
@@ -803,7 +805,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
 
       showModalBottomSheet(
         context: context,
-        backgroundColor: const Color(0xFF1E293B),
+        backgroundColor: Colors.white,
         isScrollControlled: true,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -827,7 +829,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
 
               return Padding(
                 padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+                  bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
                   top: 24,
                   left: 24,
                   right: 24,
@@ -842,7 +844,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                         width: 40,
                         height: 4,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF475569),
+                          color: const Color(0xFFCBD5E1),
                           borderRadius: BorderRadius.circular(2),
                         ),
                       ),
@@ -858,20 +860,19 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 22,
                             fontWeight: FontWeight.w800,
-                            color: Colors.white,
+                            color: const Color(0xFF0F172A),
                           ),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF0F172A),
+                            color: const Color(0xFFF1F5F9),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: const Color(0xFF334155)),
                           ),
                           child: Text(
                             "Saldo: ${NumberFormat.compact(locale: 'id').format(cash)}",
                             style: GoogleFonts.plusJakartaSans(
-                              color: const Color(0xFF38BDF8),
+                              color: const Color(0xFF64748B),
                               fontWeight: FontWeight.w700,
                               fontSize: 12,
                             ),
@@ -885,7 +886,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                     Text(
                       "HARGA BELI (RP)",
                       style: GoogleFonts.plusJakartaSans(
-                        color: const Color(0xFF94A3B8),
+                        color: const Color(0xFF64748B),
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.5,
@@ -898,16 +899,20 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
-                        color: Colors.white,
+                        color: const Color(0xFF0F172A),
                       ),
                       decoration: InputDecoration(
                         suffixText: "/ lembar",
-                        suffixStyle: GoogleFonts.plusJakartaSans(color: const Color(0xFF94A3B8), fontSize: 13),
+                        suffixStyle: GoogleFonts.plusJakartaSans(color: const Color(0xFF64748B), fontSize: 13),
                         filled: true,
-                        fillColor: const Color(0xFF0F172A),
+                        fillColor: const Color(0xFFF8FAFC),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFF334155)),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
                         ),
                       ),
                       onChanged: (val) {
@@ -926,7 +931,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                         Text(
                           "JUMLAH LOT",
                           style: GoogleFonts.plusJakartaSans(
-                            color: const Color(0xFF94A3B8),
+                            color: const Color(0xFF64748B),
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 0.5,
@@ -935,7 +940,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                         Text(
                           "Max: $maxLot Lot",
                           style: GoogleFonts.plusJakartaSans(
-                            color: const Color(0xFF38BDF8),
+                            color: const Color(0xFF94A3B8),
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                           ),
@@ -948,10 +953,10 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                         Expanded(
                           child: SliderTheme(
                             data: SliderTheme.of(ctx).copyWith(
-                              activeTrackColor: const Color(0xFF10B981),
-                              inactiveTrackColor: const Color(0xFF334155),
-                              thumbColor: const Color(0xFF10B981),
-                              overlayColor: const Color(0xFF10B981).withOpacity(0.12),
+                              activeTrackColor: const Color(0xFF059669),
+                              inactiveTrackColor: const Color(0xFFE2E8F0),
+                              thumbColor: const Color(0xFF059669),
+                              overlayColor: const Color(0xFF059669).withOpacity(0.12),
                             ),
                             child: Slider(
                               value: (lots > maxLot ? maxLot : lots).toDouble(),
@@ -967,8 +972,8 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                           alignment: Alignment.center,
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF0F172A),
-                            border: Border.all(color: const Color(0xFF334155)),
+                            color: const Color(0xFFF1F5F9),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
@@ -976,7 +981,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                             style: GoogleFonts.plusJakartaSans(
                               fontWeight: FontWeight.w800,
                               fontSize: 16,
-                              color: Colors.white,
+                              color: const Color(0xFF0F172A),
                             ),
                           ),
                         ),
@@ -984,7 +989,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                     ),
 
                     const SizedBox(height: 16),
-                    const Divider(color: Color(0xFF334155)),
+                    const Divider(color: Color(0xFFE2E8F0)),
                     const SizedBox(height: 12),
 
                     // Total Biaya
@@ -994,7 +999,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                         Text(
                           "Total Estimasi (inc fee):",
                           style: GoogleFonts.plusJakartaSans(
-                            color: const Color(0xFF94A3B8),
+                            color: const Color(0xFF64748B),
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                           ),
@@ -1004,7 +1009,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
-                            color: isOverBudget ? const Color(0xFFEF4444) : const Color(0xFF34D399),
+                            color: isOverBudget ? const Color(0xFFDC2626) : const Color(0xFF0F172A),
                           ),
                         ),
                       ],
@@ -1015,20 +1020,20 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF4C0519),
+                          color: const Color(0xFFFEE2E2),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFFEF4444).withOpacity(0.4)),
+                          border: Border.all(color: const Color(0xFFFECACA)),
                         ),
                         child: Row(
                           children: [
-                            const Icon(PhosphorIcons.warningCircleBold, size: 16, color: Color(0xFFFB7185)),
+                            const Icon(PhosphorIcons.warningCircleBold, size: 16, color: Color(0xFFDC2626)),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 cash <= 0
                                     ? "Saldo kas Anda saat ini Rp 0. Silakan Top Up terlebih dahulu di Dashboard."
                                     : "Saldo kas tidak mencukupi untuk ${lots} lot.",
-                                style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFFFB7185), fontWeight: FontWeight.w600),
+                                style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFFDC2626), fontWeight: FontWeight.w600),
                               ),
                             ),
                           ],
@@ -1044,10 +1049,10 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                       height: 48,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: isOverBudget ? const Color(0xFF475569) : const Color(0xFF10B981),
+                          backgroundColor: isOverBudget ? const Color(0xFF94A3B8) : const Color(0xFF059669),
                           foregroundColor: Colors.white,
                           elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         onPressed: (lots == 0 || isOverBudget || currentPrice <= 0)
                             ? null
@@ -1063,7 +1068,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
                                         content: Text("Order Pembelian Berhasil Dikirim!"),
-                                        backgroundColor: Color(0xFF10B981),
+                                        backgroundColor: Color(0xFF059669),
                                       ),
                                     );
                                   }

@@ -30,7 +30,8 @@ class StockDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
-  String _timeframe = "1M"; // '1D', '1W', '1M', '1Y'
+  // Default timeframe dimulai dari 1M sesuai instruksi user
+  String _timeframe = "1M"; // '1W', '1M', '3M', '1Y'
   bool _isCandleMode = false;
   int? _hoveredIndex;
 
@@ -42,12 +43,12 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
     final detailAsync = ref.watch(stockDetailProvider((symbol: widget.symbol, timeframe: _timeframe)));
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A), // Modern Gen-Z Dark Fintech Slate
+      backgroundColor: const Color(0xFFF8FAFC), // Tema Terang Clean Modern
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F172A),
-        elevation: 0,
+        backgroundColor: Colors.white,
+        elevation: 0.5,
         leading: IconButton(
-          icon: const Icon(PhosphorIcons.arrowLeftBold, color: Colors.white),
+          icon: const Icon(PhosphorIcons.arrowLeftBold, color: Color(0xFF0F172A)),
           onPressed: () => Navigator.pop(context),
         ),
         title: Row(
@@ -61,7 +62,7 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
                   style: GoogleFonts.plusJakartaSans(
                     fontWeight: FontWeight.w900,
                     fontSize: 22,
-                    color: Colors.white,
+                    color: const Color(0xFF0F172A),
                     letterSpacing: 0.5,
                   ),
                 ),
@@ -71,16 +72,16 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
+                color: const Color(0xFFF1F5F9),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFF334155)),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: Text(
                 "IDX",
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF94A3B8),
+                  color: const Color(0xFF64748B),
                 ),
               ),
             ),
@@ -88,12 +89,12 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(PhosphorIcons.databaseBold, color: Color(0xFF38BDF8)),
+            icon: const Icon(PhosphorIcons.databaseBold, color: Color(0xFF0284C7)),
             tooltip: "Ubah Data Saham di Database",
             onPressed: () => _openDatabaseEditModal(context),
           ),
           IconButton(
-            icon: const Icon(PhosphorIcons.arrowsClockwiseBold, color: Colors.white70),
+            icon: const Icon(PhosphorIcons.arrowsClockwiseBold, color: Color(0xFF0F172A)),
             tooltip: "Refresh Data",
             onPressed: () {
               HapticFeedback.lightImpact();
@@ -108,11 +109,11 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const CircularProgressIndicator(color: Color(0xFF10B981)),
+              const CircularProgressIndicator(color: Color(0xFF059669)),
               const SizedBox(height: 16),
               Text(
-                "Mengambil Intelligence ${widget.symbol}...",
-                style: GoogleFonts.plusJakartaSans(color: const Color(0xFF94A3B8), fontSize: 13),
+                "Mengambil data ${widget.symbol}...",
+                style: GoogleFonts.plusJakartaSans(color: const Color(0xFF64748B), fontSize: 13),
               ),
             ],
           ),
@@ -130,22 +131,22 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(PhosphorIcons.warningCircleBold, size: 48, color: Color(0xFFEF4444)),
+            const Icon(PhosphorIcons.warningCircleBold, size: 48, color: Color(0xFFDC2626)),
             const SizedBox(height: 12),
             Text(
               "Gagal Memuat Data Saham",
-              style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+              style: GoogleFonts.plusJakartaSans(color: const Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 16),
             ),
             const SizedBox(height: 8),
             Text(
               error,
               textAlign: TextAlign.center,
-              style: GoogleFonts.plusJakartaSans(color: const Color(0xFF94A3B8), fontSize: 12),
+              style: GoogleFonts.plusJakartaSans(color: const Color(0xFF64748B), fontSize: 12),
             ),
             const SizedBox(height: 20),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1E293B),
+                backgroundColor: const Color(0xFF059669),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
@@ -165,8 +166,8 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
     final changePct = (data['change_percent'] as num?)?.toDouble() ?? 0.0;
     final isUp = change >= 0;
 
-    final stats = (data['stats'] as Map<String, dynamic>?) ?? {};
     final bandarmologi = (data['bandarmologi'] as Map<String, dynamic>?) ?? {};
+    final orderbook = (bandarmologi['orderbook'] as Map<String, dynamic>?) ?? {};
     final ai = (data['ai_analysis'] as Map<String, dynamic>?) ?? {};
     final config = (data['user_config'] as Map<String, dynamic>?) ?? {};
     final rawCandles = (data['candles'] as List<dynamic>?) ?? [];
@@ -174,14 +175,14 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
     final candles = rawCandles.map((e) => Map<String, dynamic>.from(e as Map)).toList();
 
     return RefreshIndicator(
-      color: const Color(0xFF10B981),
-      backgroundColor: const Color(0xFF1E293B),
+      color: const Color(0xFF059669),
+      backgroundColor: Colors.white,
       onRefresh: () async {
         ref.refresh(stockDetailProvider((symbol: widget.symbol, timeframe: _timeframe)));
       },
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -189,29 +190,29 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
             _buildPriceHeader(price, change, changePct, isUp, config, ai),
             const SizedBox(height: 16),
 
-            // 2. TIMEFRAME SELECTOR & CHART CONTROLS
+            // 2. TIMEFRAME SELECTOR (1W, 1M, 3M, 1Y) & CHART TOGGLE
             _buildChartHeaderControls(),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
 
-            // 3. INTERACTIVE STOCKBIT CHART
+            // 3. INTERACTIVE STOCKBIT CHART (LIGHT THEME)
             _buildInteractiveChartSection(candles, isUp, price),
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
 
-            // 4. BANDARMOLOGI & FLOW RADAR
+            // 4. LIVE ORDERBOOK (LEVEL 2) ALA STOCKBIT (MENGGANTIKAN STATISTIK)
+            _buildLiveOrderbookCard(orderbook, price),
+            const SizedBox(height: 16),
+
+            // 5. BANDARMOLOGI & FLOW RADAR
             _buildBandarmologiCard(bandarmologi),
             const SizedBox(height: 16),
 
-            // 5. AI SUPER-VERDICT & TARGETS
+            // 6. AI SUPER-VERDICT & TARGETS
             _buildAIVerdictCard(ai),
             const SizedBox(height: 16),
 
-            // 6. KEY MARKET STATISTICS (RINGKASAN PASAR)
-            _buildMarketStatsGrid(stats),
-            const SizedBox(height: 16),
-
-            // 7. DATABASE CONFIG QUICK BANNER
+            // 7. DATABASE CONFIG BANNER
             _buildDatabaseConfigBanner(config),
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
           ],
         ),
       ),
@@ -230,17 +231,17 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
     final sectorName = config['sector_name'] ?? 'Sektor Belum Ditentukan';
     final rec = ai['recommendation'] ?? 'NETRAL';
 
-    Color badgeBg = const Color(0xFF1E293B);
-    Color badgeFg = const Color(0xFF94A3B8);
+    Color badgeBg = const Color(0xFFF1F5F9);
+    Color badgeFg = const Color(0xFF64748B);
     if (rec.contains("STRONG")) {
-      badgeBg = const Color(0xFF064E3B);
-      badgeFg = const Color(0xFF34D399);
+      badgeBg = const Color(0xFFD1FAE5);
+      badgeFg = const Color(0xFF059669);
     } else if (rec.contains("BELI") || rec.contains("BUY")) {
-      badgeBg = const Color(0xFF0C4A6E);
-      badgeFg = const Color(0xFF38BDF8);
+      badgeBg = const Color(0xFFE0F2FE);
+      badgeFg = const Color(0xFF0284C7);
     } else if (rec.contains("JUAL") || rec.contains("HINDARI") || rec.contains("AVOID")) {
-      badgeBg = const Color(0xFF4C0519);
-      badgeFg = const Color(0xFFFB7185);
+      badgeBg = const Color(0xFFFEE2E2);
+      badgeFg = const Color(0xFFDC2626);
     }
 
     return Column(
@@ -251,25 +252,28 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
           children: [
             InkWell(
               onTap: () => _openDatabaseEditModal(context),
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(8),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: const Color(0xFF334155)),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2)),
+                  ],
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(PhosphorIcons.tagBold, size: 12, color: Color(0xFF38BDF8)),
+                    const Icon(PhosphorIcons.tagBold, size: 12, color: Color(0xFF0284C7)),
                     const SizedBox(width: 6),
                     Text(
                       sectorName,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: const Color(0xFFE2E8F0),
+                        color: const Color(0xFF334155),
                       ),
                     ),
                     const SizedBox(width: 4),
@@ -279,11 +283,10 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
               ),
             ),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
                 color: badgeBg,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: badgeFg.withOpacity(0.3)),
               ),
               child: Text(
                 rec.contains("STRONG")
@@ -310,7 +313,7 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 32,
                 fontWeight: FontWeight.w900,
-                color: Colors.white,
+                color: const Color(0xFF0F172A),
                 letterSpacing: -0.5,
               ),
             ),
@@ -318,7 +321,7 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: isUp ? const Color(0xFF064E3B) : const Color(0xFF4C0519),
+                color: isUp ? const Color(0xFFD1FAE5) : const Color(0xFFFEE2E2),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -327,7 +330,7 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
                   Icon(
                     isUp ? PhosphorIcons.arrowUpBold : PhosphorIcons.arrowDownBold,
                     size: 13,
-                    color: isUp ? const Color(0xFF34D399) : const Color(0xFFFB7185),
+                    color: isUp ? const Color(0xFF059669) : const Color(0xFFDC2626),
                   ),
                   const SizedBox(width: 4),
                   Text(
@@ -335,7 +338,7 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
-                      color: isUp ? const Color(0xFF34D399) : const Color(0xFFFB7185),
+                      color: isUp ? const Color(0xFF059669) : const Color(0xFFDC2626),
                     ),
                   ),
                 ],
@@ -347,18 +350,18 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
     );
   }
 
-  // --- TIMEFRAME SELECTOR & CONTROLS ---
+  // --- TIMEFRAME SELECTOR (1W, 1M, 3M, 1Y) ---
   Widget _buildChartHeaderControls() {
-    final timeframes = ["1D", "1W", "1M", "1Y"];
+    final timeframes = ["1W", "1M", "3M", "1Y"];
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        // Timeframe tabs
+        // Timeframe Segmented Control
         Container(
           padding: const EdgeInsets.all(3),
           decoration: BoxDecoration(
-            color: const Color(0xFF1E293B),
+            color: const Color(0xFFE2E8F0).withOpacity(0.6),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Row(
@@ -378,15 +381,18 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
                   duration: const Duration(milliseconds: 200),
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                   decoration: BoxDecoration(
-                    color: active ? const Color(0xFF10B981) : Colors.transparent,
+                    color: active ? Colors.white : Colors.transparent,
                     borderRadius: BorderRadius.circular(8),
+                    boxShadow: active
+                        ? [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 4, offset: const Offset(0, 2))]
+                        : null,
                   ),
                   child: Text(
                     tf,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 11,
                       fontWeight: active ? FontWeight.w800 : FontWeight.w600,
-                      color: active ? Colors.white : const Color(0xFF94A3B8),
+                      color: active ? const Color(0xFF0F172A) : const Color(0xFF64748B),
                     ),
                   ),
                 ),
@@ -396,64 +402,63 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
         ),
 
         // Toggle Line vs Candle
-        Row(
-          children: [
-            GestureDetector(
-              onTap: () {
-                HapticFeedback.selectionClick();
-                setState(() => _isCandleMode = !_isCandleMode);
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFF334155)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      _isCandleMode ? PhosphorIcons.chartBarBold : PhosphorIcons.chartLineBold,
-                      size: 14,
-                      color: const Color(0xFF38BDF8),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      _isCandleMode ? "Candle" : "Line Area",
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white70,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+        GestureDetector(
+          onTap: () {
+            HapticFeedback.selectionClick();
+            setState(() => _isCandleMode = !_isCandleMode);
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2)),
+              ],
             ),
-          ],
+            child: Row(
+              children: [
+                Icon(
+                  _isCandleMode ? PhosphorIcons.chartBarBold : PhosphorIcons.chartLineBold,
+                  size: 14,
+                  color: const Color(0xFF059669),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  _isCandleMode ? "Candle" : "Line Area",
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF334155),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ],
     );
   }
 
-  // --- INTERACTIVE STOCKBIT CHART ---
+  // --- INTERACTIVE CHART (LIGHT THEME) ---
   Widget _buildInteractiveChartSection(List<Map<String, dynamic>> candles, bool isUp, double currentPrice) {
     if (candles.isEmpty) {
       return Container(
-        height: 240,
+        height: 230,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: const Color(0xFF1E293B),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
         ),
         child: Text(
-          "Memuat histori grafik...",
-          style: GoogleFonts.plusJakartaSans(color: const Color(0xFF64748B), fontSize: 12),
+          "Memuat grafik data...",
+          style: GoogleFonts.plusJakartaSans(color: const Color(0xFF94A3B8), fontSize: 12),
         ),
       );
     }
 
-    // Hovered candle data
     final activeCandle = (_hoveredIndex != null && _hoveredIndex! < candles.length)
         ? candles[_hoveredIndex!]
         : candles.last;
@@ -463,18 +468,18 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
         currentPrice;
     final hoverDate = activeCandle['date'] ?? activeCandle['time'] ?? '-';
     final hoverVol = (activeCandle['volume'] as num?)?.toDouble() ?? 0.0;
-    final hoverNf = (activeCandle['net_foreign'] as num?)?.toDouble() ?? (activeCandle['cvd'] as num?)?.toDouble();
+    final hoverNf = (activeCandle['net_foreign'] as num?)?.toDouble();
 
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF334155).withOpacity(0.6)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -495,16 +500,16 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
-                        color: isUp ? const Color(0xFF34D399) : const Color(0xFFFB7185),
+                        color: isUp ? const Color(0xFF059669) : const Color(0xFFDC2626),
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      "Waktu: $hoverDate",
+                      "Tanggal: $hoverDate",
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        color: const Color(0xFF94A3B8),
+                        color: const Color(0xFF64748B),
                       ),
                     ),
                   ],
@@ -517,19 +522,17 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: Colors.white70,
+                        color: const Color(0xFF0F172A),
                       ),
                     ),
                     if (hoverNf != null) ...[
                       const SizedBox(height: 2),
                       Text(
-                        _timeframe == "1D"
-                            ? "CVD: ${fmtNum.format(hoverNf.round())}"
-                            : "Foreign: ${fmtNum.format((hoverNf / 1000000).round())} Jt",
+                        "Foreign: ${fmtNum.format((hoverNf / 1000000).round())} Jt",
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
-                          color: hoverNf >= 0 ? const Color(0xFF34D399) : const Color(0xFFFB7185),
+                          color: hoverNf >= 0 ? const Color(0xFF059669) : const Color(0xFFDC2626),
                         ),
                       ),
                     ],
@@ -541,7 +544,7 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
 
           // THE CANVAS
           SizedBox(
-            height: 210,
+            height: 200,
             width: double.infinity,
             child: LayoutBuilder(
               builder: (ctx, constraints) {
@@ -550,8 +553,8 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
                   onPanUpdate: (details) => _handleTouch(details.localPosition.dx, constraints.maxWidth, candles.length),
                   onPanEnd: (_) => setState(() => _hoveredIndex = null),
                   child: CustomPaint(
-                    size: Size(constraints.maxWidth, 210),
-                    painter: StockbitChartPainter(
+                    size: Size(constraints.maxWidth, 200),
+                    painter: StockbitLightChartPainter(
                       candles: candles,
                       isCandleMode: _isCandleMode,
                       isUp: isUp,
@@ -578,20 +581,314 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
     }
   }
 
+  // --- LIVE ORDERBOOK (LEVEL 2) ALA STOCKBIT ---
+  Widget _buildLiveOrderbookCard(Map<String, dynamic> orderbook, double currentPrice) {
+    final rawBids = (orderbook['bids'] as List<dynamic>?) ?? [];
+    final rawAsks = (orderbook['asks'] as List<dynamic>?) ?? [];
+
+    final bids = rawBids.map((e) => Map<String, dynamic>.from(e as Map)).take(7).toList();
+    final asks = rawAsks.map((e) => Map<String, dynamic>.from(e as Map)).take(7).toList();
+
+    final totalBidVol = (orderbook['total_bid_vol'] as num?)?.toDouble() ?? 1.0;
+    final totalAskVol = (orderbook['total_ask_vol'] as num?)?.toDouble() ?? 1.0;
+    final bidRatio = (totalBidVol / (totalBidVol + totalAskVol)).clamp(0.05, 0.95);
+
+    double maxRowVol = 1.0;
+    for (var b in bids) {
+      final v = (b['volume'] as num?)?.toDouble() ?? 0;
+      if (v > maxRowVol) maxRowVol = v;
+    }
+    for (var a in asks) {
+      final v = (a['volume'] as num?)?.toDouble() ?? 0;
+      if (v > maxRowVol) maxRowVol = v;
+    }
+
+    final rowCount = max(bids.length, asks.length);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Orderbook Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF059669),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    "Live Orderbook (Level 2)",
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF0F172A),
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  totalBidVol > totalAskVol ? "Bid Dominan (Akumulasi)" : "Offer Dominan (Distribusi)",
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: totalBidVol > totalAskVol ? const Color(0xFF059669) : const Color(0xFFDC2626),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Orderbook Table Header (Bid | Ask)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: Text(
+                    "B.Lot",
+                    textAlign: TextAlign.left,
+                    style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF64748B)),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    "Bid",
+                    textAlign: TextAlign.right,
+                    style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w800, color: const Color(0xFF059669)),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    "Ask",
+                    textAlign: TextAlign.left,
+                    style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w800, color: const Color(0xFFDC2626)),
+                  ),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: Text(
+                    "O.Lot",
+                    textAlign: TextAlign.right,
+                    style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF64748B)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 6),
+
+          // Rows
+          if (rowCount == 0)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Center(
+                child: Text(
+                  "Orderbook realtime belum tersedia saat bursa tutup.",
+                  style: GoogleFonts.plusJakartaSans(color: const Color(0xFF94A3B8), fontSize: 12),
+                ),
+              ),
+            )
+          else
+            ...List.generate(rowCount, (index) {
+              final b = index < bids.length ? bids[index] : null;
+              final a = index < asks.length ? asks[index] : null;
+
+              final bPrice = b != null ? (b['price'] as num).toDouble() : 0.0;
+              final bVol = b != null ? (b['volume'] as num).toDouble() : 0.0;
+              final bRatio = (bVol / maxRowVol).clamp(0.0, 1.0);
+
+              final aPrice = a != null ? (a['price'] as num).toDouble() : 0.0;
+              final aVol = a != null ? (a['volume'] as num).toDouble() : 0.0;
+              final aRatio = (aVol / maxRowVol).clamp(0.0, 1.0);
+
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                margin: const EdgeInsets.only(bottom: 2),
+                child: Row(
+                  children: [
+                    // BID SIDE (Volume Bar + Price)
+                    Expanded(
+                      flex: 3,
+                      child: Stack(
+                        alignment: Alignment.centerLeft,
+                        children: [
+                          FractionallySizedBox(
+                            widthFactor: bRatio,
+                            alignment: Alignment.centerLeft,
+                            child: Container(
+                              height: 20,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFD1FAE5),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: Text(
+                              bVol > 0 ? fmtNum.format(bVol.round()) : "-",
+                              style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF334155)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        bPrice > 0 ? fmtNum.format(bPrice.round()) : "-",
+                        textAlign: TextAlign.right,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF059669),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 16),
+
+                    // ASK SIDE (Price + Volume Bar)
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        aPrice > 0 ? fmtNum.format(aPrice.round()) : "-",
+                        textAlign: TextAlign.left,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFFDC2626),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 3,
+                      child: Stack(
+                        alignment: Alignment.centerRight,
+                        children: [
+                          FractionallySizedBox(
+                            widthFactor: aRatio,
+                            alignment: Alignment.centerRight,
+                            child: Container(
+                              height: 20,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFEE2E2),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: Text(
+                              aVol > 0 ? fmtNum.format(aVol.round()) : "-",
+                              style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF334155)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+
+          const SizedBox(height: 12),
+          const Divider(color: Color(0xFFE2E8F0)),
+          const SizedBox(height: 8),
+
+          // Total Depth Bar
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Total Bid: ${fmtNum.format(totalBidVol.round())} Lot",
+                style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF059669)),
+              ),
+              Text(
+                "Total Offer: ${fmtNum.format(totalAskVol.round())} Lot",
+                style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFFDC2626)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: SizedBox(
+              height: 6,
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: (bidRatio * 100).round(),
+                    child: Container(color: const Color(0xFF059669)),
+                  ),
+                  Expanded(
+                    flex: ((1 - bidRatio) * 100).round(),
+                    child: Container(color: const Color(0xFFDC2626)),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // --- BANDARMOLOGI & FLOW RADAR ---
   Widget _buildBandarmologiCard(Map<String, dynamic> bandar) {
     final status = bandar['foreign_status'] ?? 'NEUTRAL';
     final netForeign = (bandar['net_foreign'] as num?)?.toDouble() ?? 0.0;
     final cvd = (bandar['cvd'] as num?)?.toDouble() ?? 0.0;
-    final orderbook = (bandar['orderbook'] as Map<String, dynamic>?) ?? {};
 
-    Color statusColor = const Color(0xFF94A3B8);
-    if (status.contains("BIG ACCUMULATION")) statusColor = const Color(0xFF10B981);
-    else if (status.contains("ACCUMULATION")) statusColor = const Color(0xFF34D399);
-    else if (status.contains("BIG DISTRIBUTION")) statusColor = const Color(0xFFEF4444);
-    else if (status.contains("DISTRIBUTION")) statusColor = const Color(0xFFF87171);
+    Color statusColor = const Color(0xFF64748B);
+    Color statusBg = const Color(0xFFF1F5F9);
+    if (status.contains("BIG ACCUMULATION")) {
+      statusColor = const Color(0xFF059669);
+      statusBg = const Color(0xFFD1FAE5);
+    } else if (status.contains("ACCUMULATION")) {
+      statusColor = const Color(0xFF0284C7);
+      statusBg = const Color(0xFFE0F2FE);
+    } else if (status.contains("BIG DISTRIBUTION")) {
+      statusColor = const Color(0xFFDC2626);
+      statusBg = const Color(0xFFFEE2E2);
+    } else if (status.contains("DISTRIBUTION")) {
+      statusColor = const Color(0xFFEA580C);
+      statusBg = const Color(0xFFFFEDD5);
+    }
 
-    // Format Rupiah net foreign
     String netForeignStr;
     if (netForeign.abs() >= 1000000000000) {
       netForeignStr = "${(netForeign / 1000000000000).toStringAsFixed(2)} T";
@@ -601,18 +898,15 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
       netForeignStr = "${(netForeign / 1000000).toStringAsFixed(1)} Jt";
     }
 
-    final bid1 = (orderbook['bid1'] as num?)?.toDouble() ?? 0.0;
-    final ask1 = (orderbook['ask1'] as num?)?.toDouble() ?? 0.0;
-    final totalBidVol = (orderbook['total_bid_vol'] as num?)?.toDouble() ?? 1.0;
-    final totalAskVol = (orderbook['total_ask_vol'] as num?)?.toDouble() ?? 1.0;
-    final bidRatio = (totalBidVol / (totalBidVol + totalAskVol)).clamp(0.05, 0.95);
-
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF334155)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -622,14 +916,14 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
             children: [
               Row(
                 children: [
-                  const Icon(PhosphorIcons.broadcastBold, size: 18, color: Color(0xFF38BDF8)),
+                  const Icon(PhosphorIcons.broadcastBold, size: 18, color: Color(0xFF0284C7)),
                   const SizedBox(width: 8),
                   Text(
                     "Bandarmologi & Big Flow",
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
-                      color: Colors.white,
+                      color: const Color(0xFF0F172A),
                     ),
                   ),
                 ],
@@ -637,9 +931,8 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.15),
+                  color: statusBg,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: statusColor.withOpacity(0.5)),
                 ),
                 child: Text(
                   status,
@@ -652,16 +945,16 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
           // Flow metrics
           Row(
             children: [
               Expanded(
                 child: _buildBandarPill(
-                  title: "ASING NET BUY/SELL",
+                  title: "ASING NET FLOW",
                   value: "${netForeign >= 0 ? '+' : ''}Rp $netForeignStr",
-                  color: netForeign >= 0 ? const Color(0xFF34D399) : const Color(0xFFFB7185),
+                  color: netForeign >= 0 ? const Color(0xFF059669) : const Color(0xFFDC2626),
                   icon: netForeign >= 0 ? PhosphorIcons.trendUpBold : PhosphorIcons.trendDownBold,
                 ),
               ),
@@ -670,49 +963,12 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
                 child: _buildBandarPill(
                   title: "INTRADAY CVD DELTA",
                   value: "${cvd >= 0 ? '+' : ''}${fmtNum.format(cvd.round())} Lot",
-                  color: cvd >= 0 ? const Color(0xFF38BDF8) : const Color(0xFFFB7185),
+                  color: cvd >= 0 ? const Color(0xFF0284C7) : const Color(0xFFDC2626),
                   icon: PhosphorIcons.lightningBold,
                 ),
               ),
             ],
           ),
-
-          if (bid1 > 0 || ask1 > 0) ...[
-            const SizedBox(height: 14),
-            // Orderbook Mini Depth Bar
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "Bid: ${fmt.format(bid1)} (${fmtNum.format(totalBidVol.round())} Lot)",
-                  style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF34D399)),
-                ),
-                Text(
-                  "Ask: ${fmt.format(ask1)} (${fmtNum.format(totalAskVol.round())} Lot)",
-                  style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFFFB7185)),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: SizedBox(
-                height: 8,
-                child: Row(
-                  children: [
-                    Expanded(
-                      flex: (bidRatio * 100).round(),
-                      child: Container(color: const Color(0xFF10B981)),
-                    ),
-                    Expanded(
-                      flex: ((1 - bidRatio) * 100).round(),
-                      child: Container(color: const Color(0xFFEF4444)),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -727,9 +983,9 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A),
+        color: const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF334155)),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -744,7 +1000,7 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 9,
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFF94A3B8),
+                    color: const Color(0xFF64748B),
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -773,12 +1029,13 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF1E293B),
-          borderRadius: BorderRadius.circular(20),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
         ),
         child: Text(
           "Belum ada kalkulasi prediksi AI terkini untuk saham ini.",
-          style: GoogleFonts.plusJakartaSans(color: const Color(0xFF94A3B8), fontSize: 12),
+          style: GoogleFonts.plusJakartaSans(color: const Color(0xFF64748B), fontSize: 12),
         ),
       );
     }
@@ -793,17 +1050,13 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
     final reason = ai['reason']?.toString() ?? '';
 
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.5)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
         boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF8B5CF6).withOpacity(0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4)),
         ],
       ),
       child: Column(
@@ -814,14 +1067,14 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
             children: [
               Row(
                 children: [
-                  const Icon(PhosphorIcons.brainBold, size: 18, color: Color(0xFFA78BFA)),
+                  const Icon(PhosphorIcons.brainBold, size: 18, color: Color(0xFF7C3AED)),
                   const SizedBox(width: 8),
                   Text(
                     "AI Trading Super-Verdict",
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
-                      color: Colors.white,
+                      color: const Color(0xFF0F172A),
                     ),
                   ),
                 ],
@@ -829,22 +1082,21 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF4C1D95).withOpacity(0.4),
+                  color: const Color(0xFFF3E8FF),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFA78BFA).withOpacity(0.4)),
                 ),
                 child: Text(
                   "${winRate.toStringAsFixed(1)}% Conviction",
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
-                    color: const Color(0xFFDDD6FE),
+                    color: const Color(0xFF7C3AED),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
           // Progress Bar Conviction
           ClipRRect(
@@ -852,11 +1104,11 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
             child: LinearProgressIndicator(
               value: (winRate / 100.0).clamp(0.0, 1.0),
               minHeight: 8,
-              color: winRate >= 60 ? const Color(0xFF10B981) : (winRate >= 45 ? const Color(0xFF38BDF8) : const Color(0xFFF59E0B)),
-              backgroundColor: const Color(0xFF0F172A),
+              color: winRate >= 60 ? const Color(0xFF059669) : (winRate >= 45 ? const Color(0xFF0284C7) : const Color(0xFFD97706)),
+              backgroundColor: const Color(0xFFF1F5F9),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
           // Target grid
           Row(
@@ -866,7 +1118,7 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
                   label: "TARGET TP (PEAK)",
                   value: fmt.format(tp),
                   subValue: "+${gainPct.toStringAsFixed(1)}% Gain",
-                  color: const Color(0xFF34D399),
+                  color: const Color(0xFF059669),
                 ),
               ),
               const SizedBox(width: 10),
@@ -875,7 +1127,7 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
                   label: "STOP LOSS (FLOOR)",
                   value: fmt.format(sl),
                   subValue: "-${riskPct.toStringAsFixed(1)}% Risk",
-                  color: const Color(0xFFFB7185),
+                  color: const Color(0xFFDC2626),
                 ),
               ),
             ],
@@ -887,8 +1139,8 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
                 child: _buildTargetCard(
                   label: "RISK / REWARD",
                   value: "${rr.toStringAsFixed(2)}x",
-                  subValue: rr >= 2.0 ? "Sangat Menguntungkan" : "Defensif",
-                  color: const Color(0xFF38BDF8),
+                  subValue: rr >= 2.0 ? "Menguntungkan" : "Defensif",
+                  color: const Color(0xFF0284C7),
                 ),
               ),
               const SizedBox(width: 10),
@@ -897,7 +1149,7 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
                   label: "HORIZON AI",
                   value: "$days Hari",
                   subValue: "Swing Position",
-                  color: const Color(0xFFA78BFA),
+                  color: const Color(0xFF7C3AED),
                 ),
               ),
             ],
@@ -909,23 +1161,23 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFF0F172A),
+                color: const Color(0xFFF8FAFC),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF334155)),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      const Icon(PhosphorIcons.sparkleBold, size: 13, color: Color(0xFFFCD34D)),
+                      const Icon(PhosphorIcons.sparkleBold, size: 13, color: Color(0xFFD97706)),
                       const SizedBox(width: 6),
                       Text(
-                        "AI Rationale & Sintesis:",
+                        "AI Rationale & Analisa Pasar:",
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 11,
                           fontWeight: FontWeight.w800,
-                          color: const Color(0xFFFCD34D),
+                          color: const Color(0xFFD97706),
                         ),
                       ),
                     ],
@@ -936,7 +1188,7 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: const Color(0xFFCBD5E1),
+                      color: const Color(0xFF475569),
                       height: 1.4,
                     ),
                   ),
@@ -958,9 +1210,9 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A),
+        color: const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF334155)),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -970,7 +1222,7 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 9,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFF94A3B8),
+              color: const Color(0xFF64748B),
             ),
           ),
           const SizedBox(height: 4),
@@ -988,116 +1240,8 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 10,
               fontWeight: FontWeight.w600,
-              color: color.withOpacity(0.8),
+              color: color.withOpacity(0.85),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // --- RINGKASAN PASAR (STATISTICS GRID) ---
-  Widget _buildMarketStatsGrid(Map<String, dynamic> stats) {
-    final open = (stats['open'] as num?)?.toDouble() ?? 0.0;
-    final high = (stats['high'] as num?)?.toDouble() ?? 0.0;
-    final low = (stats['low'] as num?)?.toDouble() ?? 0.0;
-    final prevClose = (stats['prev_close'] as num?)?.toDouble() ?? 0.0;
-    final avg = (stats['average'] as num?)?.toDouble() ?? 0.0;
-    final vol = (stats['volume_lot'] as num?)?.toDouble() ?? 0.0;
-    final val = (stats['value_idr'] as num?)?.toDouble() ?? 0.0;
-    final freq = (stats['frequency'] as num?)?.toInt() ?? 0;
-
-    String valFormatted;
-    if (val >= 1000000000000) {
-      valFormatted = "${(val / 1000000000000).toStringAsFixed(2)} T";
-    } else if (val >= 1000000000) {
-      valFormatted = "${(val / 1000000000).toStringAsFixed(2)} M";
-    } else {
-      valFormatted = "${(val / 1000000).toStringAsFixed(0)} Jt";
-    }
-
-    final items = [
-      {"label": "Open (Buka)", "value": fmt.format(open)},
-      {"label": "High (Tertinggi)", "value": fmt.format(high)},
-      {"label": "Low (Terendah)", "value": fmt.format(low)},
-      {"label": "Prev Close", "value": fmt.format(prevClose)},
-      {"label": "VWAP (Rata-rata)", "value": fmt.format(avg)},
-      {"label": "Volume (Lot)", "value": fmtNum.format(vol.round())},
-      {"label": "Value (Turnover)", "value": "Rp $valFormatted"},
-      {"label": "Frequency", "value": "${fmtNum.format(freq)}x"},
-    ];
-
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF334155)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(PhosphorIcons.chartPieSliceBold, size: 18, color: Color(0xFF10B981)),
-              const SizedBox(width: 8),
-              Text(
-                "Ringkasan Statistik Pasar",
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: items.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              childAspectRatio: 2.5,
-            ),
-            itemBuilder: (ctx, i) {
-              final it = items[i];
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0F172A),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFF334155).withOpacity(0.5)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      it['label']!,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF94A3B8),
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      it['value']!,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              );
-            },
           ),
         ],
       ),
@@ -1112,23 +1256,22 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFF38BDF8).withOpacity(0.4)),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 2)),
+        ],
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFF38BDF8).withOpacity(0.15),
+              color: const Color(0xFFE0F2FE),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(PhosphorIcons.databaseBold, color: Color(0xFF38BDF8), size: 22),
+            child: const Icon(PhosphorIcons.databaseBold, color: Color(0xFF0284C7), size: 22),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -1136,19 +1279,19 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Status Database & Watchlist",
+                  "Pengaturan Database Saham",
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
-                    color: Colors.white,
+                    color: const Color(0xFF0F172A),
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  "Sektor: $sectorName • ${isActive ? 'Aktif Dipantau AI' : 'Nonaktif'}",
+                  "Sektor: $sectorName • ${isActive ? 'Aktif' : 'Nonaktif'}",
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 11,
-                    color: const Color(0xFF94A3B8),
+                    color: const Color(0xFF64748B),
                   ),
                 ),
               ],
@@ -1156,9 +1299,9 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF38BDF8),
-              foregroundColor: const Color(0xFF0F172A),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              backgroundColor: const Color(0xFF0284C7),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () => _openDatabaseEditModal(context),
@@ -1176,9 +1319,9 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
   Widget _buildBottomActionBar(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
-        border: Border(top: BorderSide(color: const Color(0xFF334155).withOpacity(0.6))),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Color(0xFFE2E8F0))),
       ),
       child: Row(
         children: [
@@ -1186,8 +1329,8 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
             flex: 2,
             child: OutlinedButton.icon(
               style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF38BDF8),
-                side: const BorderSide(color: Color(0xFF38BDF8)),
+                foregroundColor: const Color(0xFF0284C7),
+                side: const BorderSide(color: Color(0xFF0284C7)),
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
@@ -1204,11 +1347,11 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
             flex: 3,
             child: ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF10B981),
+                backgroundColor: const Color(0xFF059669),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                elevation: 4,
+                elevation: 1,
               ),
               icon: const Icon(PhosphorIcons.lightningBold, size: 18),
               label: Text(
@@ -1265,7 +1408,7 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
             return Container(
               padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(stCtx).viewInsets.bottom + 24),
               decoration: const BoxDecoration(
-                color: Color(0xFF1E293B),
+                color: Colors.white,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               ),
               child: Column(
@@ -1276,7 +1419,7 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
                     child: Container(
                       width: 40,
                       height: 4,
-                      decoration: BoxDecoration(color: const Color(0xFF475569), borderRadius: BorderRadius.circular(2)),
+                      decoration: BoxDecoration(color: const Color(0xFFCBD5E1), borderRadius: BorderRadius.circular(2)),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -1288,7 +1431,7 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
-                          color: Colors.white,
+                          color: const Color(0xFF0F172A),
                         ),
                       ),
                       Text(
@@ -1296,7 +1439,7 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 18,
                           fontWeight: FontWeight.w900,
-                          color: const Color(0xFF34D399),
+                          color: const Color(0xFF059669),
                         ),
                       ),
                     ],
@@ -1304,14 +1447,14 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
                   const SizedBox(height: 16),
                   Text(
                     "Jumlah Lot (1 Lot = 100 Lembar):",
-                    style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF94A3B8)),
+                    style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF64748B)),
                   ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
                       IconButton(
-                        style: IconButton.styleFrom(backgroundColor: const Color(0xFF334155)),
-                        icon: const Icon(PhosphorIcons.minusBold, color: Colors.white),
+                        style: IconButton.styleFrom(backgroundColor: const Color(0xFFF1F5F9)),
+                        icon: const Icon(PhosphorIcons.minusBold, color: Color(0xFF0F172A)),
                         onPressed: () {
                           if (lots > 1) {
                             setModalState(() => lots--);
@@ -1321,18 +1464,18 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
                       const SizedBox(width: 16),
                       Text(
                         "$lots Lot",
-                        style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.white),
+                        style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.w900, color: const Color(0xFF0F172A)),
                       ),
                       const SizedBox(width: 16),
                       IconButton(
-                        style: IconButton.styleFrom(backgroundColor: const Color(0xFF334155)),
-                        icon: const Icon(PhosphorIcons.plusBold, color: Colors.white),
+                        style: IconButton.styleFrom(backgroundColor: const Color(0xFFF1F5F9)),
+                        icon: const Icon(PhosphorIcons.plusBold, color: Color(0xFF0F172A)),
                         onPressed: () => setModalState(() => lots++),
                       ),
                       const Spacer(),
                       Text(
                         "Total: ${fmt.format(totalCost)}",
-                        style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.white70),
+                        style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800, color: const Color(0xFF64748B)),
                       ),
                     ],
                   ),
@@ -1341,7 +1484,7 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
                     width: double.infinity,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF10B981),
+                        backgroundColor: const Color(0xFF059669),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -1357,7 +1500,7 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text("Berhasil membeli $lots Lot ${widget.symbol}!"),
-                              backgroundColor: const Color(0xFF10B981),
+                              backgroundColor: const Color(0xFF059669),
                             ),
                           );
                           ref.refresh(stockDetailProvider((symbol: widget.symbol, timeframe: _timeframe)));
@@ -1365,7 +1508,7 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text("Gagal order: $e"),
-                              backgroundColor: const Color(0xFFEF4444),
+                              backgroundColor: const Color(0xFFDC2626),
                             ),
                           );
                         }
@@ -1386,7 +1529,7 @@ class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
   }
 }
 
-// --- SHEET UBAH DATA DATABASE ---
+// --- SHEET UBAH DATA DATABASE (LIGHT THEME) ---
 class _DatabaseEditSheet extends ConsumerStatefulWidget {
   final String symbol;
   final VoidCallback onSaved;
@@ -1469,13 +1612,13 @@ class _DatabaseEditSheetState extends ConsumerState<_DatabaseEditSheet> {
               Text("Database ${widget.symbol} berhasil diperbarui!"),
             ],
           ),
-          backgroundColor: const Color(0xFF10B981),
+          backgroundColor: const Color(0xFF059669),
         ),
       );
     } catch (e) {
       setState(() => _isSaving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Gagal simpan database: $e"), backgroundColor: const Color(0xFFEF4444)),
+        SnackBar(content: Text("Gagal simpan database: $e"), backgroundColor: const Color(0xFFDC2626)),
       );
     }
   }
@@ -1485,13 +1628,13 @@ class _DatabaseEditSheetState extends ConsumerState<_DatabaseEditSheet> {
     return Container(
       padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 28),
       decoration: const BoxDecoration(
-        color: Color(0xFF1E293B),
+        color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: _isLoading
           ? const SizedBox(
               height: 200,
-              child: Center(child: CircularProgressIndicator(color: Color(0xFF38BDF8))),
+              child: Center(child: CircularProgressIndicator(color: Color(0xFF0284C7))),
             )
           : SingleChildScrollView(
               child: Column(
@@ -1502,35 +1645,35 @@ class _DatabaseEditSheetState extends ConsumerState<_DatabaseEditSheet> {
                     child: Container(
                       width: 40,
                       height: 4,
-                      decoration: BoxDecoration(color: const Color(0xFF475569), borderRadius: BorderRadius.circular(2)),
+                      decoration: BoxDecoration(color: const Color(0xFFCBD5E1), borderRadius: BorderRadius.circular(2)),
                     ),
                   ),
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      const Icon(PhosphorIcons.databaseBold, color: Color(0xFF38BDF8), size: 22),
+                      const Icon(PhosphorIcons.databaseBold, color: Color(0xFF0284C7), size: 22),
                       const SizedBox(width: 10),
                       Text(
                         "Kelola Data Saham: ${widget.symbol}",
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 18,
                           fontWeight: FontWeight.w800,
-                          color: Colors.white,
+                          color: const Color(0xFF0F172A),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    "Ubah sektor klasifikasi, status aktif radar AI, atau override target di database server.",
-                    style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF94A3B8)),
+                    "Ubah sektor klasifikasi, status aktif pantauan AI, atau override target di database server.",
+                    style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF64748B)),
                   ),
                   const SizedBox(height: 20),
 
                   // SEKTOR PILIHAN
                   Text(
                     "Klasifikasi Sektor Saham:",
-                    style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white),
+                    style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
                   ),
                   const SizedBox(height: 8),
                   Wrap(
@@ -1542,12 +1685,12 @@ class _DatabaseEditSheetState extends ConsumerState<_DatabaseEditSheet> {
                       return ChoiceChip(
                         label: Text(sec['name'].toString()),
                         selected: isSelected,
-                        selectedColor: const Color(0xFF38BDF8),
-                        backgroundColor: const Color(0xFF0F172A),
+                        selectedColor: const Color(0xFF0284C7),
+                        backgroundColor: const Color(0xFFF1F5F9),
                         labelStyle: GoogleFonts.plusJakartaSans(
                           fontSize: 11,
                           fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                          color: isSelected ? const Color(0xFF0F172A) : Colors.white70,
+                          color: isSelected ? Colors.white : const Color(0xFF334155),
                         ),
                         onSelected: (val) {
                           if (val) setState(() => _selectedSectorId = secId);
@@ -1561,9 +1704,9 @@ class _DatabaseEditSheetState extends ConsumerState<_DatabaseEditSheet> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0F172A),
+                      color: const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFF334155)),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1573,17 +1716,17 @@ class _DatabaseEditSheetState extends ConsumerState<_DatabaseEditSheet> {
                           children: [
                             Text(
                               "Status Pantauan AI",
-                              style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
+                              style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A)),
                             ),
                             Text(
                               _isActive ? "AI aktif menganalisa pergerakan saham ini" : "Saham di-pause dari pemindaian",
-                              style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF94A3B8)),
+                              style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF64748B)),
                             ),
                           ],
                         ),
                         Switch(
                           value: _isActive,
-                          activeColor: const Color(0xFF10B981),
+                          activeColor: const Color(0xFF059669),
                           onChanged: (val) => setState(() => _isActive = val),
                         ),
                       ],
@@ -1600,20 +1743,21 @@ class _DatabaseEditSheetState extends ConsumerState<_DatabaseEditSheet> {
                           children: [
                             Text(
                               "Custom Target TP (Rp):",
-                              style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF94A3B8)),
+                              style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF64748B)),
                             ),
                             const SizedBox(height: 6),
                             TextField(
                               controller: _tpController,
                               keyboardType: TextInputType.number,
-                              style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 13),
+                              style: GoogleFonts.plusJakartaSans(color: const Color(0xFF0F172A), fontSize: 13, fontWeight: FontWeight.w700),
                               decoration: InputDecoration(
                                 hintText: "Contoh: 3500",
-                                hintStyle: const TextStyle(color: Color(0xFF475569)),
+                                hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
                                 filled: true,
-                                fillColor: const Color(0xFF0F172A),
+                                fillColor: const Color(0xFFF8FAFC),
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF334155))),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                               ),
                             ),
                           ],
@@ -1626,20 +1770,21 @@ class _DatabaseEditSheetState extends ConsumerState<_DatabaseEditSheet> {
                           children: [
                             Text(
                               "Custom Stop Loss (Rp):",
-                              style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF94A3B8)),
+                              style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF64748B)),
                             ),
                             const SizedBox(height: 6),
                             TextField(
                               controller: _slController,
                               keyboardType: TextInputType.number,
-                              style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 13),
+                              style: GoogleFonts.plusJakartaSans(color: const Color(0xFF0F172A), fontSize: 13, fontWeight: FontWeight.w700),
                               decoration: InputDecoration(
                                 hintText: "Contoh: 3100",
-                                hintStyle: const TextStyle(color: Color(0xFF475569)),
+                                hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
                                 filled: true,
-                                fillColor: const Color(0xFF0F172A),
+                                fillColor: const Color(0xFFF8FAFC),
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF334155))),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                               ),
                             ),
                           ],
@@ -1654,14 +1799,14 @@ class _DatabaseEditSheetState extends ConsumerState<_DatabaseEditSheet> {
                     width: double.infinity,
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF38BDF8),
-                        foregroundColor: const Color(0xFF0F172A),
+                        backgroundColor: const Color(0xFF0284C7),
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                       ),
                       onPressed: _isSaving ? null : _saveChanges,
                       child: _isSaving
-                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Color(0xFF0F172A), strokeWidth: 2))
+                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                           : Text(
                               "SIMPAN KE DATABASE",
                               style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 14),
@@ -1675,14 +1820,14 @@ class _DatabaseEditSheetState extends ConsumerState<_DatabaseEditSheet> {
   }
 }
 
-// --- CUSTOM PAINTER: STOCKBIT-STYLE CHART ---
-class StockbitChartPainter extends CustomPainter {
+// --- CUSTOM PAINTER: STOCKBIT-STYLE CHART (LIGHT THEME) ---
+class StockbitLightChartPainter extends CustomPainter {
   final List<Map<String, dynamic>> candles;
   final bool isCandleMode;
   final bool isUp;
   final int? hoveredIndex;
 
-  StockbitChartPainter({
+  StockbitLightChartPainter({
     required this.candles,
     required this.isCandleMode,
     required this.isUp,
@@ -1697,10 +1842,9 @@ class StockbitChartPainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
 
-    // Bottom 25% reserved for volume histogram
-    final chartHeight = h * 0.72;
-    final volHeight = h * 0.22;
-    final volTop = h - volHeight;
+    // Bottom 22% reserved for volume histogram
+    final chartHeight = h * 0.74;
+    final volHeight = h * 0.20;
 
     // 1. Calculate price min & max
     double minP = double.infinity;
@@ -1728,16 +1872,16 @@ class StockbitChartPainter extends CustomPainter {
     final paddedMinP = max(1.0, minP - rangeP * 0.08);
     final finalRange = paddedMaxP - paddedMinP;
 
-    // 2. Draw Horizontal Gridlines & Price Labels
+    // 2. Draw Horizontal Gridlines & Price Labels (Light Theme)
     final gridPaint = Paint()
-      ..color = const Color(0xFF334155).withOpacity(0.35)
-      ..strokeWidth = 0.8
+      ..color = const Color(0xFFF1F5F9)
+      ..strokeWidth = 1.0
       ..style = PaintingStyle.stroke;
 
     final textStyle = GoogleFonts.plusJakartaSans(
       fontSize: 9,
       fontWeight: FontWeight.w600,
-      color: const Color(0xFF64748B),
+      color: const Color(0xFF94A3B8),
     );
 
     for (int i = 0; i <= 3; i++) {
@@ -1765,7 +1909,7 @@ class StockbitChartPainter extends CustomPainter {
       final x = (i / (n - 1 == 0 ? 1 : n - 1)) * w;
 
       final vPaint = Paint()
-        ..color = (cIsGreen ? const Color(0xFF10B981) : const Color(0xFFEF4444)).withOpacity(0.3)
+        ..color = (cIsGreen ? const Color(0xFF059669) : const Color(0xFFDC2626)).withOpacity(0.2)
         ..style = PaintingStyle.fill;
 
       canvas.drawRRect(
@@ -1778,7 +1922,7 @@ class StockbitChartPainter extends CustomPainter {
     }
 
     // 4. Draw Line or Candlestick
-    final lineColor = isUp ? const Color(0xFF10B981) : const Color(0xFFEF4444);
+    final lineColor = isUp ? const Color(0xFF059669) : const Color(0xFFDC2626);
 
     if (isCandleMode) {
       // CANDLESTICK DRAWING
@@ -1796,7 +1940,7 @@ class StockbitChartPainter extends CustomPainter {
         final yOp = chartHeight - ((op - paddedMinP) / finalRange * chartHeight);
         final yCl = chartHeight - ((cl - paddedMinP) / finalRange * chartHeight);
 
-        final candleColor = isGreen ? const Color(0xFF10B981) : const Color(0xFFEF4444);
+        final candleColor = isGreen ? const Color(0xFF059669) : const Color(0xFFDC2626);
         final wickPaint = Paint()
           ..color = candleColor
           ..strokeWidth = 1.2;
@@ -1860,8 +2004,8 @@ class StockbitChartPainter extends CustomPainter {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            lineColor.withOpacity(0.35),
-            lineColor.withOpacity(0.02),
+            lineColor.withOpacity(0.18),
+            lineColor.withOpacity(0.01),
           ],
         ).createShader(Rect.fromLTWH(0, 0, w, chartHeight));
 
@@ -1885,15 +2029,15 @@ class StockbitChartPainter extends CustomPainter {
 
       // Vertical line
       final crossPaint = Paint()
-        ..color = Colors.white.withOpacity(0.6)
+        ..color = const Color(0xFF64748B).withOpacity(0.6)
         ..strokeWidth = 1.0
         ..style = PaintingStyle.stroke;
 
       canvas.drawLine(Offset(hX, 0), Offset(hX, h), crossPaint);
 
-      // Glowing dot
-      final dotHalo = Paint()..color = lineColor.withOpacity(0.3);
-      final dotCore = Paint()..color = Colors.white;
+      // Dot
+      final dotHalo = Paint()..color = lineColor.withOpacity(0.25);
+      final dotCore = Paint()..color = lineColor;
 
       canvas.drawCircle(Offset(hX, hY), 7, dotHalo);
       canvas.drawCircle(Offset(hX, hY), 3.5, dotCore);
@@ -1901,7 +2045,7 @@ class StockbitChartPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant StockbitChartPainter oldDelegate) {
+  bool shouldRepaint(covariant StockbitLightChartPainter oldDelegate) {
     return oldDelegate.candles != candles ||
         oldDelegate.isCandleMode != isCandleMode ||
         oldDelegate.hoveredIndex != hoveredIndex ||
