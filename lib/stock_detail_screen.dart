@@ -1,0 +1,1911 @@
+import 'dart:math';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import 'package:phosphor_flutter/phosphor_flutter.dart';
+import 'api_service.dart';
+import 'sector_service.dart';
+
+// Provider detail saham dengan parameter symbol & timeframe
+final stockDetailProvider = FutureProvider.family.autoDispose<Map<String, dynamic>, ({String symbol, String timeframe})>(
+  (ref, arg) async {
+    final api = ref.watch(apiProvider);
+    return await api.getStockDetail(arg.symbol, timeframe: arg.timeframe);
+  },
+);
+
+class StockDetailScreen extends ConsumerStatefulWidget {
+  final String symbol;
+  final Map<String, dynamic>? initialData;
+
+  const StockDetailScreen({
+    super.key,
+    required this.symbol,
+    this.initialData,
+  });
+
+  @override
+  ConsumerState<StockDetailScreen> createState() => _StockDetailScreenState();
+}
+
+class _StockDetailScreenState extends ConsumerState<StockDetailScreen> {
+  String _timeframe = "1M"; // '1D', '1W', '1M', '1Y'
+  bool _isCandleMode = false;
+  int? _hoveredIndex;
+
+  final fmt = NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0);
+  final fmtNum = NumberFormat.decimalPattern('id');
+
+  @override
+  Widget build(BuildContext context) {
+    final detailAsync = ref.watch(stockDetailProvider((symbol: widget.symbol, timeframe: _timeframe)));
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF0F172A), // Modern Gen-Z Dark Fintech Slate
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF0F172A),
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(PhosphorIcons.arrowLeftBold, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Row(
+          children: [
+            Hero(
+              tag: 'stock_${widget.symbol}',
+              child: Material(
+                color: Colors.transparent,
+                child: Text(
+                  widget.symbol,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 22,
+                    color: Colors.white,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E293B),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFF334155)),
+              ),
+              child: Text(
+                "IDX",
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF94A3B8),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(PhosphorIcons.databaseBold, color: Color(0xFF38BDF8)),
+            tooltip: "Ubah Data Saham di Database",
+            onPressed: () => _openDatabaseEditModal(context),
+          ),
+          IconButton(
+            icon: const Icon(PhosphorIcons.arrowsClockwiseBold, color: Colors.white70),
+            tooltip: "Refresh Data",
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              ref.refresh(stockDetailProvider((symbol: widget.symbol, timeframe: _timeframe)));
+            },
+          ),
+        ],
+      ),
+      body: detailAsync.when(
+        data: (data) => _buildDetailContent(context, data),
+        loading: () => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(color: Color(0xFF10B981)),
+              const SizedBox(height: 16),
+              Text(
+                "Mengambil Intelligence ${widget.symbol}...",
+                style: GoogleFonts.plusJakartaSans(color: const Color(0xFF94A3B8), fontSize: 13),
+              ),
+            ],
+          ),
+        ),
+        error: (err, _) => _buildErrorState(context, err.toString()),
+      ),
+      bottomNavigationBar: _buildBottomActionBar(context),
+    );
+  }
+
+  Widget _buildErrorState(BuildContext context, String error) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(PhosphorIcons.warningCircleBold, size: 48, color: Color(0xFFEF4444)),
+            const SizedBox(height: 12),
+            Text(
+              "Gagal Memuat Data Saham",
+              style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              error,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.plusJakartaSans(color: const Color(0xFF94A3B8), fontSize: 12),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1E293B),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              icon: const Icon(PhosphorIcons.arrowsClockwiseBold, size: 16),
+              label: const Text("Coba Lagi"),
+              onPressed: () => ref.refresh(stockDetailProvider((symbol: widget.symbol, timeframe: _timeframe))),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailContent(BuildContext context, Map<String, dynamic> data) {
+    final price = (data['price'] as num?)?.toDouble() ?? 0.0;
+    final change = (data['change'] as num?)?.toDouble() ?? 0.0;
+    final changePct = (data['change_percent'] as num?)?.toDouble() ?? 0.0;
+    final isUp = change >= 0;
+
+    final stats = (data['stats'] as Map<String, dynamic>?) ?? {};
+    final bandarmologi = (data['bandarmologi'] as Map<String, dynamic>?) ?? {};
+    final ai = (data['ai_analysis'] as Map<String, dynamic>?) ?? {};
+    final config = (data['user_config'] as Map<String, dynamic>?) ?? {};
+    final rawCandles = (data['candles'] as List<dynamic>?) ?? [];
+
+    final candles = rawCandles.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+
+    return RefreshIndicator(
+      color: const Color(0xFF10B981),
+      backgroundColor: const Color(0xFF1E293B),
+      onRefresh: () async {
+        ref.refresh(stockDetailProvider((symbol: widget.symbol, timeframe: _timeframe)));
+      },
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 1. TOP HEADER: PRICE & BADGES
+            _buildPriceHeader(price, change, changePct, isUp, config, ai),
+            const SizedBox(height: 16),
+
+            // 2. TIMEFRAME SELECTOR & CHART CONTROLS
+            _buildChartHeaderControls(),
+            const SizedBox(height: 8),
+
+            // 3. INTERACTIVE STOCKBIT CHART
+            _buildInteractiveChartSection(candles, isUp, price),
+            const SizedBox(height: 20),
+
+            // 4. BANDARMOLOGI & FLOW RADAR
+            _buildBandarmologiCard(bandarmologi),
+            const SizedBox(height: 16),
+
+            // 5. AI SUPER-VERDICT & TARGETS
+            _buildAIVerdictCard(ai),
+            const SizedBox(height: 16),
+
+            // 6. KEY MARKET STATISTICS (RINGKASAN PASAR)
+            _buildMarketStatsGrid(stats),
+            const SizedBox(height: 16),
+
+            // 7. DATABASE CONFIG QUICK BANNER
+            _buildDatabaseConfigBanner(config),
+            const SizedBox(height: 32),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- HEADER PRICE & BADGE ---
+  Widget _buildPriceHeader(
+    double price,
+    double change,
+    double changePct,
+    bool isUp,
+    Map<String, dynamic> config,
+    Map<String, dynamic> ai,
+  ) {
+    final sectorName = config['sector_name'] ?? 'Sektor Belum Ditentukan';
+    final rec = ai['recommendation'] ?? 'NETRAL';
+
+    Color badgeBg = const Color(0xFF1E293B);
+    Color badgeFg = const Color(0xFF94A3B8);
+    if (rec.contains("STRONG")) {
+      badgeBg = const Color(0xFF064E3B);
+      badgeFg = const Color(0xFF34D399);
+    } else if (rec.contains("BELI") || rec.contains("BUY")) {
+      badgeBg = const Color(0xFF0C4A6E);
+      badgeFg = const Color(0xFF38BDF8);
+    } else if (rec.contains("JUAL") || rec.contains("HINDARI") || rec.contains("AVOID")) {
+      badgeBg = const Color(0xFF4C0519);
+      badgeFg = const Color(0xFFFB7185);
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            InkWell(
+              onTap: () => _openDatabaseEditModal(context),
+              borderRadius: BorderRadius.circular(6),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E293B),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: const Color(0xFF334155)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(PhosphorIcons.tagBold, size: 12, color: Color(0xFF38BDF8)),
+                    const SizedBox(width: 6),
+                    Text(
+                      sectorName,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFFE2E8F0),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(PhosphorIcons.pencilSimpleBold, size: 11, color: Color(0xFF94A3B8)),
+                  ],
+                ),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: badgeBg,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: badgeFg.withOpacity(0.3)),
+              ),
+              child: Text(
+                rec.contains("STRONG")
+                    ? "🚀 STRONG BUY"
+                    : (rec.contains("BELI")
+                        ? "📈 SIGNAL BUY"
+                        : (rec.contains("HINDARI") || rec.contains("AVOID") ? "🛡️ WAIT / DEFENSE" : "⚖️ NETRAL")),
+                style: GoogleFonts.plusJakartaSans(
+                  color: badgeFg,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 11,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Text(
+              fmt.format(price),
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 32,
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: isUp ? const Color(0xFF064E3B) : const Color(0xFF4C0519),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isUp ? PhosphorIcons.arrowUpBold : PhosphorIcons.arrowDownBold,
+                    size: 13,
+                    color: isUp ? const Color(0xFF34D399) : const Color(0xFFFB7185),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    "${isUp ? '+' : ''}${fmtNum.format(change)} (${isUp ? '+' : ''}${changePct.toStringAsFixed(2)}%)",
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: isUp ? const Color(0xFF34D399) : const Color(0xFFFB7185),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // --- TIMEFRAME SELECTOR & CONTROLS ---
+  Widget _buildChartHeaderControls() {
+    final timeframes = ["1D", "1W", "1M", "1Y"];
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        // Timeframe tabs
+        Container(
+          padding: const EdgeInsets.all(3),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E293B),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            children: timeframes.map((tf) {
+              final active = _timeframe == tf;
+              return GestureDetector(
+                onTap: () {
+                  if (_timeframe != tf) {
+                    HapticFeedback.selectionClick();
+                    setState(() {
+                      _timeframe = tf;
+                      _hoveredIndex = null;
+                    });
+                  }
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: active ? const Color(0xFF10B981) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    tf,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11,
+                      fontWeight: active ? FontWeight.w800 : FontWeight.w600,
+                      color: active ? Colors.white : const Color(0xFF94A3B8),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+
+        // Toggle Line vs Candle
+        Row(
+          children: [
+            GestureDetector(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                setState(() => _isCandleMode = !_isCandleMode);
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E293B),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF334155)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      _isCandleMode ? PhosphorIcons.chartBarBold : PhosphorIcons.chartLineBold,
+                      size: 14,
+                      color: const Color(0xFF38BDF8),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _isCandleMode ? "Candle" : "Line Area",
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // --- INTERACTIVE STOCKBIT CHART ---
+  Widget _buildInteractiveChartSection(List<Map<String, dynamic>> candles, bool isUp, double currentPrice) {
+    if (candles.isEmpty) {
+      return Container(
+        height: 240,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E293B),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Text(
+          "Memuat histori grafik...",
+          style: GoogleFonts.plusJakartaSans(color: const Color(0xFF64748B), fontSize: 12),
+        ),
+      );
+    }
+
+    // Hovered candle data
+    final activeCandle = (_hoveredIndex != null && _hoveredIndex! < candles.length)
+        ? candles[_hoveredIndex!]
+        : candles.last;
+
+    final hoverPrice = (activeCandle['price'] as num?)?.toDouble() ??
+        (activeCandle['close'] as num?)?.toDouble() ??
+        currentPrice;
+    final hoverDate = activeCandle['date'] ?? activeCandle['time'] ?? '-';
+    final hoverVol = (activeCandle['volume'] as num?)?.toDouble() ?? 0.0;
+    final hoverNf = (activeCandle['net_foreign'] as num?)?.toDouble() ?? (activeCandle['cvd'] as num?)?.toDouble();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFF334155).withOpacity(0.6)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // FLOATING HUD TOOLTIP ON TOP OF CHART
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      fmt.format(hoverPrice),
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: isUp ? const Color(0xFF34D399) : const Color(0xFFFB7185),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      "Waktu: $hoverDate",
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF94A3B8),
+                      ),
+                    ),
+                  ],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      "Vol: ${fmtNum.format(hoverVol.round())} Lot",
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white70,
+                      ),
+                    ),
+                    if (hoverNf != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        _timeframe == "1D"
+                            ? "CVD: ${fmtNum.format(hoverNf.round())}"
+                            : "Foreign: ${fmtNum.format((hoverNf / 1000000).round())} Jt",
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: hoverNf >= 0 ? const Color(0xFF34D399) : const Color(0xFFFB7185),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // THE CANVAS
+          SizedBox(
+            height: 210,
+            width: double.infinity,
+            child: LayoutBuilder(
+              builder: (ctx, constraints) {
+                return GestureDetector(
+                  onPanDown: (details) => _handleTouch(details.localPosition.dx, constraints.maxWidth, candles.length),
+                  onPanUpdate: (details) => _handleTouch(details.localPosition.dx, constraints.maxWidth, candles.length),
+                  onPanEnd: (_) => setState(() => _hoveredIndex = null),
+                  child: CustomPaint(
+                    size: Size(constraints.maxWidth, 210),
+                    painter: StockbitChartPainter(
+                      candles: candles,
+                      isCandleMode: _isCandleMode,
+                      isUp: isUp,
+                      hoveredIndex: _hoveredIndex,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+
+  void _handleTouch(double dx, double width, int count) {
+    if (count <= 1 || width <= 0) return;
+    final pct = (dx / width).clamp(0.0, 1.0);
+    final idx = (pct * (count - 1)).round().clamp(0, count - 1);
+    if (_hoveredIndex != idx) {
+      HapticFeedback.selectionClick();
+      setState(() => _hoveredIndex = idx);
+    }
+  }
+
+  // --- BANDARMOLOGI & FLOW RADAR ---
+  Widget _buildBandarmologiCard(Map<String, dynamic> bandar) {
+    final status = bandar['foreign_status'] ?? 'NEUTRAL';
+    final netForeign = (bandar['net_foreign'] as num?)?.toDouble() ?? 0.0;
+    final cvd = (bandar['cvd'] as num?)?.toDouble() ?? 0.0;
+    final orderbook = (bandar['orderbook'] as Map<String, dynamic>?) ?? {};
+
+    Color statusColor = const Color(0xFF94A3B8);
+    if (status.contains("BIG ACCUMULATION")) statusColor = const Color(0xFF10B981);
+    else if (status.contains("ACCUMULATION")) statusColor = const Color(0xFF34D399);
+    else if (status.contains("BIG DISTRIBUTION")) statusColor = const Color(0xFFEF4444);
+    else if (status.contains("DISTRIBUTION")) statusColor = const Color(0xFFF87171);
+
+    // Format Rupiah net foreign
+    String netForeignStr;
+    if (netForeign.abs() >= 1000000000000) {
+      netForeignStr = "${(netForeign / 1000000000000).toStringAsFixed(2)} T";
+    } else if (netForeign.abs() >= 1000000000) {
+      netForeignStr = "${(netForeign / 1000000000).toStringAsFixed(2)} M";
+    } else {
+      netForeignStr = "${(netForeign / 1000000).toStringAsFixed(1)} Jt";
+    }
+
+    final bid1 = (orderbook['bid1'] as num?)?.toDouble() ?? 0.0;
+    final ask1 = (orderbook['ask1'] as num?)?.toDouble() ?? 0.0;
+    final totalBidVol = (orderbook['total_bid_vol'] as num?)?.toDouble() ?? 1.0;
+    final totalAskVol = (orderbook['total_ask_vol'] as num?)?.toDouble() ?? 1.0;
+    final bidRatio = (totalBidVol / (totalBidVol + totalAskVol)).clamp(0.05, 0.95);
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFF334155)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(PhosphorIcons.radarBold, size: 18, color: Color(0xFF38BDF8)),
+                  const SizedBox(width: 8),
+                  Text(
+                    "Bandarmologi & Big Flow",
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: statusColor.withOpacity(0.5)),
+                ),
+                child: Text(
+                  status,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: statusColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Flow metrics
+          Row(
+            children: [
+              Expanded(
+                child: _buildBandarPill(
+                  title: "ASING NET BUY/SELL",
+                  value: "${netForeign >= 0 ? '+' : ''}Rp $netForeignStr",
+                  color: netForeign >= 0 ? const Color(0xFF34D399) : const Color(0xFFFB7185),
+                  icon: netForeign >= 0 ? PhosphorIcons.trendUpBold : PhosphorIcons.trendDownBold,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildBandarPill(
+                  title: "INTRADAY CVD DELTA",
+                  value: "${cvd >= 0 ? '+' : ''}${fmtNum.format(cvd.round())} Lot",
+                  color: cvd >= 0 ? const Color(0xFF38BDF8) : const Color(0xFFFB7185),
+                  icon: PhosphorIcons.lightningBold,
+                ),
+              ),
+            ],
+          ),
+
+          if (bid1 > 0 || ask1 > 0) ...[
+            const SizedBox(height: 14),
+            // Orderbook Mini Depth Bar
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Bid: ${fmt.format(bid1)} (${fmtNum.format(totalBidVol.round())} Lot)",
+                  style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF34D399)),
+                ),
+                Text(
+                  "Ask: ${fmt.format(ask1)} (${fmtNum.format(totalAskVol.round())} Lot)",
+                  style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFFFB7185)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: SizedBox(
+                height: 8,
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: (bidRatio * 100).round(),
+                      child: Container(color: const Color(0xFF10B981)),
+                    ),
+                    Expanded(
+                      flex: ((1 - bidRatio) * 100).round(),
+                      child: Container(color: const Color(0xFFEF4444)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBandarPill({
+    required String title,
+    required String value,
+    required Color color,
+    required IconData icon,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F172A),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF334155)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 12, color: color),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  title,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF94A3B8),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- AI SUPER-VERDICT & TARGETS ---
+  Widget _buildAIVerdictCard(Map<String, dynamic> ai) {
+    if (ai.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E293B),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          "Belum ada kalkulasi prediksi AI terkini untuk saham ini.",
+          style: GoogleFonts.plusJakartaSans(color: const Color(0xFF94A3B8), fontSize: 12),
+        ),
+      );
+    }
+
+    final winRate = (ai['prediction_probability'] as num?)?.toDouble() ?? 0.0;
+    final tp = (ai['predicted_peak'] as num?)?.toDouble() ?? 0.0;
+    final sl = (ai['stop_loss_now'] as num?)?.toDouble() ?? (ai['predicted_floor'] as num?)?.toDouble() ?? 0.0;
+    final days = (ai['predicted_days'] as num?)?.toInt() ?? 0;
+    final gainPct = (ai['potential_gain_percent'] as num?)?.toDouble() ?? 0.0;
+    final riskPct = (ai['potential_risk_percent'] as num?)?.toDouble() ?? 0.0;
+    final rr = (ai['risk_reward_ratio'] as num?)?.toDouble() ?? 0.0;
+    final reason = ai['reason']?.toString() ?? '';
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFF8B5CF6).withOpacity(0.5)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF8B5CF6).withOpacity(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(PhosphorIcons.brainBold, size: 18, color: Color(0xFFA78BFA)),
+                  const SizedBox(width: 8),
+                  Text(
+                    "AI Trading Super-Verdict",
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF4C1D95).withOpacity(0.4),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFA78BFA).withOpacity(0.4)),
+                ),
+                child: Text(
+                  "${winRate.toStringAsFixed(1)}% Conviction",
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFFDDD6FE),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Progress Bar Conviction
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: (winRate / 100.0).clamp(0.0, 1.0),
+              minHeight: 8,
+              color: winRate >= 60 ? const Color(0xFF10B981) : (winRate >= 45 ? const Color(0xFF38BDF8) : const Color(0xFFF59E0B)),
+              backgroundColor: const Color(0xFF0F172A),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Target grid
+          Row(
+            children: [
+              Expanded(
+                child: _buildTargetCard(
+                  label: "TARGET TP (PEAK)",
+                  value: fmt.format(tp),
+                  subValue: "+${gainPct.toStringAsFixed(1)}% Gain",
+                  color: const Color(0xFF34D399),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildTargetCard(
+                  label: "STOP LOSS (FLOOR)",
+                  value: fmt.format(sl),
+                  subValue: "-${riskPct.toStringAsFixed(1)}% Risk",
+                  color: const Color(0xFFFB7185),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _buildTargetCard(
+                  label: "RISK / REWARD",
+                  value: "${rr.toStringAsFixed(2)}x",
+                  subValue: rr >= 2.0 ? "Sangat Menguntungkan" : "Defensif",
+                  color: const Color(0xFF38BDF8),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildTargetCard(
+                  label: "HORIZON AI",
+                  value: "$days Hari",
+                  subValue: "Swing Position",
+                  color: const Color(0xFFA78BFA),
+                ),
+              ),
+            ],
+          ),
+
+          if (reason.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F172A),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF334155)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(PhosphorIcons.sparkleBold, size: 13, color: Color(0xFFFCD34D)),
+                      const SizedBox(width: 6),
+                      Text(
+                        "AI Rationale & Sintesis:",
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFFFCD34D),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    reason,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFFCBD5E1),
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTargetCard({
+    required String label,
+    required String value,
+    required String subValue,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F172A),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF334155)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF94A3B8),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            subValue,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: color.withOpacity(0.8),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- RINGKASAN PASAR (STATISTICS GRID) ---
+  Widget _buildMarketStatsGrid(Map<String, dynamic> stats) {
+    final open = (stats['open'] as num?)?.toDouble() ?? 0.0;
+    final high = (stats['high'] as num?)?.toDouble() ?? 0.0;
+    final low = (stats['low'] as num?)?.toDouble() ?? 0.0;
+    final prevClose = (stats['prev_close'] as num?)?.toDouble() ?? 0.0;
+    final avg = (stats['average'] as num?)?.toDouble() ?? 0.0;
+    final vol = (stats['volume_lot'] as num?)?.toDouble() ?? 0.0;
+    final val = (stats['value_idr'] as num?)?.toDouble() ?? 0.0;
+    final freq = (stats['frequency'] as num?)?.toInt() ?? 0;
+
+    String valFormatted;
+    if (val >= 1000000000000) {
+      valFormatted = "${(val / 1000000000000).toStringAsFixed(2)} T";
+    } else if (val >= 1000000000) {
+      valFormatted = "${(val / 1000000000).toStringAsFixed(2)} M";
+    } else {
+      valFormatted = "${(val / 1000000).toStringAsFixed(0)} Jt";
+    }
+
+    final items = [
+      {"label": "Open (Buka)", "value": fmt.format(open)},
+      {"label": "High (Tertinggi)", "value": fmt.format(high)},
+      {"label": "Low (Terendah)", "value": fmt.format(low)},
+      {"label": "Prev Close", "value": fmt.format(prevClose)},
+      {"label": "VWAP (Rata-rata)", "value": fmt.format(avg)},
+      {"label": "Volume (Lot)", "value": fmtNum.format(vol.round())},
+      {"label": "Value (Turnover)", "value": "Rp $valFormatted"},
+      {"label": "Frequency", "value": "${fmtNum.format(freq)}x"},
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFF334155)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(PhosphorIcons.chartPolarBold, size: 18, color: Color(0xFF10B981)),
+              const SizedBox(width: 8),
+              Text(
+                "Ringkasan Statistik Pasar",
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: items.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              childAspectRatio: 2.5,
+            ),
+            itemBuilder: (ctx, i) {
+              final it = items[i];
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0F172A),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF334155).withOpacity(0.5)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      it['label']!,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF94A3B8),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      it['value']!,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- BANNER DATABASE CONFIG ---
+  Widget _buildDatabaseConfigBanner(Map<String, dynamic> config) {
+    final sectorName = config['sector_name'] ?? 'Belum Ditentukan';
+    final isActive = (config['is_active'] as num?)?.toInt() == 1;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFF38BDF8).withOpacity(0.4)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: const Color(0xFF38BDF8).withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(PhosphorIcons.databaseBold, color: Color(0xFF38BDF8), size: 22),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Status Database & Watchlist",
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  "Sektor: $sectorName • ${isActive ? 'Aktif Dipantau AI' : 'Nonaktif'}",
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    color: const Color(0xFF94A3B8),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF38BDF8),
+              foregroundColor: const Color(0xFF0F172A),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () => _openDatabaseEditModal(context),
+            child: Text(
+              "Koreksi",
+              style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w800),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- BOTTOM ACTION BAR ---
+  Widget _buildBottomActionBar(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        border: Border(top: BorderSide(color: const Color(0xFF334155).withOpacity(0.6))),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 2,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF38BDF8),
+                side: const BorderSide(color: Color(0xFF38BDF8)),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              icon: const Icon(PhosphorIcons.databaseBold, size: 16),
+              label: Text(
+                "Ubah DB",
+                style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 13),
+              ),
+              onPressed: () => _openDatabaseEditModal(context),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            flex: 3,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF10B981),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                elevation: 4,
+              ),
+              icon: const Icon(PhosphorIcons.lightningBold, size: 18),
+              label: Text(
+                "ORDER SMART BUY",
+                style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 13),
+              ),
+              onPressed: () => _showSmartBuyModal(context),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- MODAL: UBAH DATA SAHAM DI DATABASE ---
+  void _openDatabaseEditModal(BuildContext context) {
+    HapticFeedback.mediumImpact();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _DatabaseEditSheet(
+        symbol: widget.symbol,
+        onSaved: () {
+          ref.refresh(stockDetailProvider((symbol: widget.symbol, timeframe: _timeframe)));
+        },
+      ),
+    );
+  }
+
+  // --- MODAL: SMART BUY ---
+  void _showSmartBuyModal(BuildContext context) {
+    final detailAsync = ref.read(stockDetailProvider((symbol: widget.symbol, timeframe: _timeframe)));
+    detailAsync.whenData((data) {
+      final price = (data['price'] as num?)?.toDouble() ?? 0.0;
+      final ai = (data['ai_analysis'] as Map<String, dynamic>?) ?? {};
+      final rec = ai['recommendation'] ?? '';
+
+      int defaultLots = 1;
+      final regex = RegExp(r'Target:\s*(\d+)\s*Lot');
+      final match = regex.firstMatch(rec);
+      if (match != null) {
+        defaultLots = int.tryParse(match.group(1)!) ?? 1;
+      }
+
+      int lots = defaultLots;
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (sheetCtx) => StatefulBuilder(
+          builder: (stCtx, setModalState) {
+            final totalCost = (lots * 100 * price) * 1.0015;
+            return Container(
+              padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(stCtx).viewInsets.bottom + 24),
+              decoration: const BoxDecoration(
+                color: Color(0xFF1E293B),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(color: const Color(0xFF475569), borderRadius: BorderRadius.circular(2)),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Smart Order AI: ${widget.symbol}",
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        fmt.format(price),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: const Color(0xFF34D399),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    "Jumlah Lot (1 Lot = 100 Lembar):",
+                    style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF94A3B8)),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      IconButton(
+                        style: IconButton.styleFrom(backgroundColor: const Color(0xFF334155)),
+                        icon: const Icon(PhosphorIcons.minusBold, color: Colors.white),
+                        onPressed: () {
+                          if (lots > 1) {
+                            setModalState(() => lots--);
+                          }
+                        },
+                      ),
+                      const SizedBox(width: 16),
+                      Text(
+                        "$lots Lot",
+                        style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.white),
+                      ),
+                      const SizedBox(width: 16),
+                      IconButton(
+                        style: IconButton.styleFrom(backgroundColor: const Color(0xFF334155)),
+                        icon: const Icon(PhosphorIcons.plusBold, color: Colors.white),
+                        onPressed: () => setModalState(() => lots++),
+                      ),
+                      const Spacer(),
+                      Text(
+                        "Total: ${fmt.format(totalCost)}",
+                        style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.white70),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF10B981),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      onPressed: () async {
+                        try {
+                          await ref.read(apiProvider).addPortfolioPosition(
+                                symbol: widget.symbol,
+                                price: price,
+                                lot: lots,
+                              );
+                          Navigator.pop(sheetCtx);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text("Berhasil membeli $lots Lot ${widget.symbol}!"),
+                              backgroundColor: const Color(0xFF10B981),
+                            ),
+                          );
+                          ref.refresh(stockDetailProvider((symbol: widget.symbol, timeframe: _timeframe)));
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text("Gagal order: $e"),
+                              backgroundColor: const Color(0xFFEF4444),
+                            ),
+                          );
+                        }
+                      },
+                      child: Text(
+                        "EKSEKUSI BELI SEKARANG",
+                        style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 14),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      );
+    });
+  }
+}
+
+// --- SHEET UBAH DATA DATABASE ---
+class _DatabaseEditSheet extends ConsumerStatefulWidget {
+  final String symbol;
+  final VoidCallback onSaved;
+
+  const _DatabaseEditSheet({
+    required this.symbol,
+    required this.onSaved,
+  });
+
+  @override
+  ConsumerState<_DatabaseEditSheet> createState() => _DatabaseEditSheetState();
+}
+
+class _DatabaseEditSheetState extends ConsumerState<_DatabaseEditSheet> {
+  int? _selectedSectorId;
+  bool _isActive = true;
+  final _tpController = TextEditingController();
+  final _slController = TextEditingController();
+  bool _isLoading = true;
+  bool _isSaving = false;
+  List<Map<String, dynamic>> _sectors = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInitialData();
+  }
+
+  Future<void> _loadInitialData() async {
+    try {
+      final api = ref.read(apiProvider);
+      final detail = await api.getStockDetail(widget.symbol);
+      final sectors = await api.getSectors();
+
+      final cfg = detail['user_config'] as Map<String, dynamic>? ?? {};
+      final port = detail['portfolio'] as Map<String, dynamic>? ?? {};
+
+      setState(() {
+        _sectors = sectors.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+        _selectedSectorId = (cfg['sector_id'] as num?)?.toInt() ?? (_sectors.isNotEmpty ? _sectors.first['id'] as int : 0);
+        _isActive = (cfg['is_active'] as num?)?.toInt() != 0;
+
+        if (port['target_price'] != null && (port['target_price'] as num) > 0) {
+          _tpController.text = (port['target_price'] as num).toInt().toString();
+        }
+        if (port['stop_loss'] != null && (port['stop_loss'] as num) > 0) {
+          _slController.text = (port['stop_loss'] as num).toInt().toString();
+        }
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _saveChanges() async {
+    setState(() => _isSaving = true);
+    HapticFeedback.mediumImpact();
+    try {
+      final api = ref.read(apiProvider);
+      final double? target = double.tryParse(_tpController.text.trim());
+      final double? sl = double.tryParse(_slController.text.trim());
+
+      await api.updateStockData(
+        widget.symbol,
+        sectorId: _selectedSectorId,
+        isActive: _isActive ? 1 : 0,
+        targetPrice: target,
+        stopLoss: sl,
+      );
+
+      widget.onSaved();
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(PhosphorIcons.checkCircleBold, color: Colors.white),
+              const SizedBox(width: 8),
+              Text("Database ${widget.symbol} berhasil diperbarui!"),
+            ],
+          ),
+          backgroundColor: const Color(0xFF10B981),
+        ),
+      );
+    } catch (e) {
+      setState(() => _isSaving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Gagal simpan database: $e"), backgroundColor: const Color(0xFFEF4444)),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 28),
+      decoration: const BoxDecoration(
+        color: Color(0xFF1E293B),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: _isLoading
+          ? const SizedBox(
+              height: 200,
+              child: Center(child: CircularProgressIndicator(color: Color(0xFF38BDF8))),
+            )
+          : SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(color: const Color(0xFF475569), borderRadius: BorderRadius.circular(2)),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      const Icon(PhosphorIcons.databaseBold, color: Color(0xFF38BDF8), size: 22),
+                      const SizedBox(width: 10),
+                      Text(
+                        "Kelola Data Saham: ${widget.symbol}",
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    "Ubah sektor klasifikasi, status aktif radar AI, atau override target di database server.",
+                    style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF94A3B8)),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // SEKTOR PILIHAN
+                  Text(
+                    "Klasifikasi Sektor Saham:",
+                    style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _sectors.map((sec) {
+                      final secId = sec['id'] as int;
+                      final isSelected = _selectedSectorId == secId;
+                      return ChoiceChip(
+                        label: Text(sec['name'].toString()),
+                        selected: isSelected,
+                        selectedColor: const Color(0xFF38BDF8),
+                        backgroundColor: const Color(0xFF0F172A),
+                        labelStyle: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                          color: isSelected ? const Color(0xFF0F172A) : Colors.white70,
+                        ),
+                        onSelected: (val) {
+                          if (val) setState(() => _selectedSectorId = secId);
+                        },
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // STATUS AKTIF WATCHLIST
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0F172A),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFF334155)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Status Pantauan AI",
+                              style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
+                            ),
+                            Text(
+                              _isActive ? "AI aktif menganalisa pergerakan saham ini" : "Saham di-pause dari pemindaian",
+                              style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF94A3B8)),
+                            ),
+                          ],
+                        ),
+                        Switch(
+                          value: _isActive,
+                          activeColor: const Color(0xFF10B981),
+                          onChanged: (val) => setState(() => _isActive = val),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // TARGET HARGA CUSTOM (OPSIONAL)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Custom Target TP (Rp):",
+                              style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF94A3B8)),
+                            ),
+                            const SizedBox(height: 6),
+                            TextField(
+                              controller: _tpController,
+                              keyboardType: TextInputType.number,
+                              style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 13),
+                              decoration: InputDecoration(
+                                hintText: "Contoh: 3500",
+                                hintStyle: const TextStyle(color: Color(0xFF475569)),
+                                filled: true,
+                                fillColor: const Color(0xFF0F172A),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF334155))),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Custom Stop Loss (Rp):",
+                              style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF94A3B8)),
+                            ),
+                            const SizedBox(height: 6),
+                            TextField(
+                              controller: _slController,
+                              keyboardType: TextInputType.number,
+                              style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 13),
+                              decoration: InputDecoration(
+                                hintText: "Contoh: 3100",
+                                hintStyle: const TextStyle(color: Color(0xFF475569)),
+                                filled: true,
+                                fillColor: const Color(0xFF0F172A),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF334155))),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  // TOMBOL SIMPAN
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF38BDF8),
+                        foregroundColor: const Color(0xFF0F172A),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      onPressed: _isSaving ? null : _saveChanges,
+                      child: _isSaving
+                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Color(0xFF0F172A), strokeWidth: 2))
+                          : Text(
+                              "SIMPAN KE DATABASE",
+                              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w900, fontSize: 14),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+    );
+  }
+}
+
+// --- CUSTOM PAINTER: STOCKBIT-STYLE CHART ---
+class StockbitChartPainter extends CustomPainter {
+  final List<Map<String, dynamic>> candles;
+  final bool isCandleMode;
+  final bool isUp;
+  final int? hoveredIndex;
+
+  StockbitChartPainter({
+    required this.candles,
+    required this.isCandleMode,
+    required this.isUp,
+    required this.hoveredIndex,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (candles.isEmpty) return;
+
+    final n = candles.length;
+    final w = size.width;
+    final h = size.height;
+
+    // Bottom 25% reserved for volume histogram
+    final chartHeight = h * 0.72;
+    final volHeight = h * 0.22;
+    final volTop = h - volHeight;
+
+    // 1. Calculate price min & max
+    double minP = double.infinity;
+    double maxP = -double.infinity;
+    double maxVol = 0.0;
+
+    for (var c in candles) {
+      final p = (c['price'] as num?)?.toDouble() ?? (c['close'] as num?)?.toDouble() ?? 0.0;
+      final hi = (c['high'] as num?)?.toDouble() ?? p;
+      final lo = (c['low'] as num?)?.toDouble() ?? p;
+      final v = (c['volume'] as num?)?.toDouble() ?? 0.0;
+
+      if (hi > maxP) maxP = hi;
+      if (lo < minP && lo > 0) minP = lo;
+      if (v > maxVol) maxVol = v;
+    }
+
+    if (maxP == minP) {
+      maxP += 10;
+      minP = max(1, minP - 10);
+    }
+    // Headroom
+    final rangeP = maxP - minP;
+    final paddedMaxP = maxP + rangeP * 0.08;
+    final paddedMinP = max(1.0, minP - rangeP * 0.08);
+    final finalRange = paddedMaxP - paddedMinP;
+
+    // 2. Draw Horizontal Gridlines & Price Labels
+    final gridPaint = Paint()
+      ..color = const Color(0xFF334155).withOpacity(0.35)
+      ..strokeWidth = 0.8
+      ..style = PaintingStyle.stroke;
+
+    final textStyle = GoogleFonts.plusJakartaSans(
+      fontSize: 9,
+      fontWeight: FontWeight.w600,
+      color: const Color(0xFF64748B),
+    );
+
+    for (int i = 0; i <= 3; i++) {
+      final y = chartHeight * (i / 3.0);
+      canvas.drawLine(Offset(0, y), Offset(w, y), gridPaint);
+
+      final priceLabel = paddedMaxP - (finalRange * (i / 3.0));
+      final tp = TextPainter(
+        text: TextSpan(text: priceLabel.toStringAsFixed(0), style: textStyle),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(canvas, Offset(w - tp.width - 4, y - tp.height - 2));
+    }
+
+    // 3. Draw Volume Histogram at bottom
+    final barW = (w / n) * 0.65;
+    for (int i = 0; i < n; i++) {
+      final v = (candles[i]['volume'] as num?)?.toDouble() ?? 0.0;
+      final cClose = (candles[i]['close'] as num?)?.toDouble() ?? (candles[i]['price'] as num?)?.toDouble() ?? 0.0;
+      final cOpen = (candles[i]['open'] as num?)?.toDouble() ?? cClose;
+      final cIsGreen = cClose >= cOpen;
+
+      final vPct = maxVol > 0 ? (v / maxVol).clamp(0.02, 1.0) : 0.05;
+      final vBarH = volHeight * vPct;
+      final x = (i / (n - 1 == 0 ? 1 : n - 1)) * w;
+
+      final vPaint = Paint()
+        ..color = (cIsGreen ? const Color(0xFF10B981) : const Color(0xFFEF4444)).withOpacity(0.3)
+        ..style = PaintingStyle.fill;
+
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(x - barW / 2, h - vBarH, barW, vBarH),
+          const Radius.circular(2),
+        ),
+        vPaint,
+      );
+    }
+
+    // 4. Draw Line or Candlestick
+    final lineColor = isUp ? const Color(0xFF10B981) : const Color(0xFFEF4444);
+
+    if (isCandleMode) {
+      // CANDLESTICK DRAWING
+      for (int i = 0; i < n; i++) {
+        final c = candles[i];
+        final op = (c['open'] as num?)?.toDouble() ?? 0.0;
+        final hi = (c['high'] as num?)?.toDouble() ?? op;
+        final lo = (c['low'] as num?)?.toDouble() ?? op;
+        final cl = (c['close'] as num?)?.toDouble() ?? op;
+        final isGreen = cl >= op;
+
+        final x = (i / (n - 1 == 0 ? 1 : n - 1)) * w;
+        final yHi = chartHeight - ((hi - paddedMinP) / finalRange * chartHeight);
+        final yLo = chartHeight - ((lo - paddedMinP) / finalRange * chartHeight);
+        final yOp = chartHeight - ((op - paddedMinP) / finalRange * chartHeight);
+        final yCl = chartHeight - ((cl - paddedMinP) / finalRange * chartHeight);
+
+        final candleColor = isGreen ? const Color(0xFF10B981) : const Color(0xFFEF4444);
+        final wickPaint = Paint()
+          ..color = candleColor
+          ..strokeWidth = 1.2;
+
+        // Wick
+        canvas.drawLine(Offset(x, yHi), Offset(x, yLo), wickPaint);
+
+        // Body
+        final bodyTop = min(yOp, yCl);
+        final bodyBottom = max(yOp, yCl);
+        final bodyHeight = max(2.0, bodyBottom - bodyTop);
+
+        final bodyPaint = Paint()
+          ..color = candleColor
+          ..style = PaintingStyle.fill;
+
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(x - barW / 2, bodyTop, barW, bodyHeight),
+            const Radius.circular(2),
+          ),
+          bodyPaint,
+        );
+      }
+    } else {
+      // LINE + AREA GRADIENT DRAWING
+      final path = Path();
+      final fillPath = Path();
+
+      for (int i = 0; i < n; i++) {
+        final p = (candles[i]['price'] as num?)?.toDouble() ?? (candles[i]['close'] as num?)?.toDouble() ?? 0.0;
+        final x = (i / (n - 1 == 0 ? 1 : n - 1)) * w;
+        final y = chartHeight - ((p - paddedMinP) / finalRange * chartHeight);
+
+        if (i == 0) {
+          path.moveTo(x, y);
+          fillPath.moveTo(x, chartHeight);
+          fillPath.lineTo(x, y);
+        } else {
+          final prevP = (candles[i - 1]['price'] as num?)?.toDouble() ?? (candles[i - 1]['close'] as num?)?.toDouble() ?? 0.0;
+          final prevX = ((i - 1) / (n - 1)) * w;
+          final prevY = chartHeight - ((prevP - paddedMinP) / finalRange * chartHeight);
+
+          // Smooth cubic bezier
+          final cx1 = prevX + (x - prevX) / 2;
+          final cy1 = prevY;
+          final cx2 = prevX + (x - prevX) / 2;
+          final cy2 = y;
+
+          path.cubicTo(cx1, cy1, cx2, cy2, x, y);
+          fillPath.cubicTo(cx1, cy1, cx2, cy2, x, y);
+        }
+      }
+
+      fillPath.lineTo(w, chartHeight);
+      fillPath.close();
+
+      // Shader fill
+      final fillPaint = Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            lineColor.withOpacity(0.35),
+            lineColor.withOpacity(0.02),
+          ],
+        ).createShader(Rect.fromLTWH(0, 0, w, chartHeight));
+
+      canvas.drawPath(fillPath, fillPaint);
+
+      // Stroke Line
+      final strokePaint = Paint()
+        ..color = lineColor
+        ..strokeWidth = 2.2
+        ..style = PaintingStyle.stroke;
+
+      canvas.drawPath(path, strokePaint);
+    }
+
+    // 5. Crosshair Touch Indicator
+    if (hoveredIndex != null && hoveredIndex! >= 0 && hoveredIndex! < n) {
+      final hIdx = hoveredIndex!;
+      final hX = (hIdx / (n - 1 == 0 ? 1 : n - 1)) * w;
+      final hP = (candles[hIdx]['price'] as num?)?.toDouble() ?? (candles[hIdx]['close'] as num?)?.toDouble() ?? 0.0;
+      final hY = chartHeight - ((hP - paddedMinP) / finalRange * chartHeight);
+
+      // Vertical line
+      final crossPaint = Paint()
+        ..color = Colors.white.withOpacity(0.6)
+        ..strokeWidth = 1.0
+        ..style = PaintingStyle.stroke;
+
+      canvas.drawLine(Offset(hX, 0), Offset(hX, h), crossPaint);
+
+      // Glowing dot
+      final dotHalo = Paint()..color = lineColor.withOpacity(0.3);
+      final dotCore = Paint()..color = Colors.white;
+
+      canvas.drawCircle(Offset(hX, hY), 7, dotHalo);
+      canvas.drawCircle(Offset(hX, hY), 3.5, dotCore);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant StockbitChartPainter oldDelegate) {
+    return oldDelegate.candles != candles ||
+        oldDelegate.isCandleMode != isCandleMode ||
+        oldDelegate.hoveredIndex != hoveredIndex ||
+        oldDelegate.isUp != isUp;
+  }
+}

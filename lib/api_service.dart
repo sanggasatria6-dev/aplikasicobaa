@@ -158,6 +158,42 @@ class ApiService {
     await _dio.delete('/api/config/stocks/$symbol');
   }
 
+  // --- DETAIL SAHAM & DATABASE MANAGEMENT ---
+  Future<Map<String, dynamic>> getStockDetail(String symbol, {String timeframe = '1M'}) async {
+    try {
+      final res = await _dio.get('/api/stocks/$symbol/detail', queryParameters: {'timeframe': timeframe});
+      return res.data['data'] ?? {};
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> updateStockData(
+    String symbol, {
+    int? sectorId,
+    int? isActive,
+    double? targetPrice,
+    double? stopLoss,
+    double? avgPrice,
+  }) async {
+    await _dio.put('/api/config/stocks/$symbol', data: {
+      if (sectorId != null) 'sector_id': sectorId,
+      if (isActive != null) 'is_active': isActive,
+      if (targetPrice != null) 'target_price': targetPrice,
+      if (stopLoss != null) 'stop_loss': stopLoss,
+      if (avgPrice != null) 'avg_price': avgPrice,
+    });
+  }
+
+  Future<List<dynamic>> getSectors() async {
+    try {
+      final res = await _dio.get('/api/sectors');
+      return res.data['data'] ?? [];
+    } catch (e) {
+      return [];
+    }
+  }
+
   // --- FITUR BARU V2.1 (Async & Manual Scan) ---
 
   // 1. Cek Status Server (Polling Progress Bar)
