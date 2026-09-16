@@ -1,9 +1,15 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'auth_provider.dart';
 
-// URL Cloudflare Production AI Trader
-final baseUrlProvider = StateProvider<String>((ref) => "https://api.satriasangga.my.id");
+// URL Cloudflare Production AI Trader (Pada Web/iPad pakai Same-Origin Proxy untuk cegah blokir CORS)
+final baseUrlProvider = StateProvider<String>((ref) {
+  if (kIsWeb) {
+    return Uri.base.origin;
+  }
+  return "https://api.satriasangga.my.id";
+});
 
 final dioProvider = Provider((ref) {
   final url = ref.watch(baseUrlProvider);
