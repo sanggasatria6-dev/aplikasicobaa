@@ -1,9 +1,8 @@
 import http.server
 import socketserver
-import urllib.request
-import urllib.error
-import sys
 import os
+import sys
+import requests
 
 PORT = 54321
 DIRECTORY = os.path.abspath(os.path.join(os.path.dirname(__file__), "build/web"))
@@ -21,6 +20,7 @@ class ProxyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_OPTIONS(self):
         self.send_response(200)
+        self.send_header('Content-Length', '0')
         self.end_headers()
 
     def do_proxy(self):
@@ -28,28 +28,39 @@ class ProxyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
         content_len = int(self.headers.get('Content-Length', 0))
         body = self.rfile.read(content_len) if content_len > 0 else None
         
-        headers = {k: v for k, v in self.headers.items() if k.lower() not in ['host', 'content-length']}
+        # Exclude host, content-length, and accept-encoding so requests handles decompression automatically
+        headers = {k: v for k, v in self.headers.items() if k.lower() not in ['host', 'content-length', 'accept-encoding']}
         headers['Host'] = 'api.satriasangga.my.id'
         if 'User-Agent' not in headers or 'python' in headers.get('User-Agent', '').lower():
             headers['User-Agent'] = 'Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15'
 
-        req = urllib.request.Request(target_url, data=body, headers=headers, method=self.command)
         try:
-            with urllib.request.urlopen(req, timeout=30) as resp:
-                self.send_response(resp.status)
-                for k, v in resp.getheaders():
-                    if k.lower() not in ['transfer-encoding', 'content-encoding', 'access-control-allow-origin']:
-                        self.send_header(k, v)
-                self.end_headers()
-                self.wfile.write(resp.read())
-        except urllib.error.HTTPError as e:
-            self.send_response(e.code)
-            for k, v in e.headers.items():
-                if k.lower() not in ['transfer-encoding', 'content-encoding', 'access-control-allow-origin']:
+            resp = requests.request(
+                method=self.command,
+                url=target_url,
+                data=body,
+                headers=headers,
+                timeout=30,
+                allow_redirects=True
+            )
+            
+            self.send_response(resp.status_code)
+            for k, v in resp.headers.items():
+                if k.lower() not in [
+                    'transfer-encoding',
+                    'content-encoding',
+                    'content-length',
+                    'access-control-allow-origin',
+                    'access-control-allow-methods',
+                    'access-control-allow-headers'
+                ]:
                     self.send_header(k, v)
+            
+            content = resp.content
+            self.send_header('Content-Length', str(len(content)))
             self.end_headers()
-            self.wfile.write(e.read())
-        except Exception as e:
+            self.wfile.write(content)
+        except requests.exceptions.RequestException as e:
             self.send_response(502)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()

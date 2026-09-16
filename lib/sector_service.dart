@@ -22,7 +22,7 @@ class SectorService {
       StreamController<List<Map<String, dynamic>>>.broadcast();
 
   final Dio _dio = Dio(BaseOptions(
-    baseUrl: "https://api.satriasangga.my.id",
+    baseUrl: kIsWeb ? Uri.base.origin : "https://api.satriasangga.my.id",
     connectTimeout: const Duration(seconds: 5),
     receiveTimeout: const Duration(seconds: 5),
   ));
