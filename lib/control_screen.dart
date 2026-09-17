@@ -142,7 +142,7 @@ class _ControlScreenState extends ConsumerState<ControlScreen> {
       padding: const EdgeInsets.all(16),
       children: [
         // 1. STATUS MONITOR (JIKA SEDANG RUNNING ATAU ERROR)
-        if (step == "ERROR") ...[
+        if (step == "ERROR" && message.isNotEmpty && message.toLowerCase() != "idle") ...[
           Container(
             padding: const EdgeInsets.all(16),
             margin: const EdgeInsets.only(bottom: 20),
